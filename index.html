@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SmartMoney Fast-Entry</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 900: '#064e3b' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body, html {
+            -webkit-tap-highlight-color: transparent; user-select: none;
+            overscroll-behavior-y: none;
+            background-color: #e5e7eb;
+            margin: 0; padding: 0;
+            height: 100dvh; width: 100vw;
+            overflow: hidden;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .active-scale:active { transform: scale(0.95); transition: transform 0.1s; }
+        .numpad-btn:active { background-color: #d1d5db; transform: scale(0.92); }
+        
+        .toast-enter { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        
+        .sheet-overlay { transition: opacity 0.3s ease; }
+        .sheet-content { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .sheet-open .sheet-overlay { opacity: 1; pointer-events: auto; }
+        .sheet-open .sheet-content { transform: translateY(0); }
+
+        /* Hide tabs by default, handle via JS */
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; }
+    </style>
+</head>
+
+<body class="flex justify-center items-center">
+    <div class="w-full max-w-md h-[100dvh] bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
+        
+        <!-- HEADER (Cố định, dùng chung cho mọi Tab) -->
+        <header class="shrink-0 pt-[env(safe-area-inset-top,0px)] bg-white border-b border-gray-100 flex justify-between items-center px-4 h-16 z-20">
+            <div class="flex flex-col">
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Số dư ròng</span>
+                <span id="headerTotal" class="text-lg font-bold text-gray-900 tracking-tight">0 đ</span>
+            </div>
+            <!-- Type Toggle (Chỉ hiện ở màn Home, nhưng ta để cố định cũng tiện) -->
+            <div class="flex bg-gray-100 p-1 rounded-lg">
+                <button id="btnExpense" onclick="setType('expense')" class="px-3 py-1.5 text-xs font-bold bg-white text-rose-500 shadow-sm rounded-md transition-all">Chi</button>
+                <button id="btnIncome" onclick="setType('income')" class="px-3 py-1.5 text-xs font-bold text-gray-400 rounded-md transition-all">Thu</button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 min-h-0 relative w-full h-full bg-gray-50">
+            
+            <!-- TAB 1: HOME (NHẬP LIỆU NHANH) -->
+            <div id="tab-home" class="tab-content active w-full h-full flex-col absolute inset-0 pb-[72px]">
+                
+                <!-- Display Amount -->
+                <div class="shrink-0 flex justify-center items-center h-24 bg-white shadow-sm z-10 relative">
+                    <div class="flex items-baseline gap-1">
+                        <span id="displaySign" class="text-3xl font-bold text-rose-500">-</span>
+                        <span id="displayAmount" class="text-5xl font-black tracking-tighter text-gray-900 transition-transform duration-100">0</span>
+                        <span class="text-xl font-bold text-gray-400 ml-1">đ</span>
+                    </div>
+                </div>
+
+                <!-- Category Chips (Cuộn dọc) -->
+                <div class="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 relative z-0">
+                    <p class="text-xs font-semibold text-gray-400 text-center mb-3">Chọn danh mục để lưu <span id="catTypeLabel" class="text-rose-500">Khoản Chi</span></p>
+                    <div id="chipsGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-3 pb-2">
+                        <!-- Render JS -->
+                    </div>
+                </div>
+
+                <!-- Huge Numpad -->
+                <div class="shrink-0 bg-white border-t border-gray-200 px-3 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="col-span-3 grid grid-cols-3 gap-2">
+                            <button onclick="pressKey('1')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">1</button>
+                            <button onclick="pressKey('2')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">2</button>
+                            <button onclick="pressKey('3')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">3</button>
+                            <button onclick="pressKey('4')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">4</button>
+                            <button onclick="pressKey('5')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">5</button>
+                            <button onclick="pressKey('6')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">6</button>
+                            <button onclick="pressKey('7')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">7</button>
+                            <button onclick="pressKey('8')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">8</button>
+                            <button onclick="pressKey('9')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">9</button>
+                            <button onclick="pressKey('C')" class="numpad-btn h-14 bg-rose-50 text-rose-500 rounded-xl text-xl font-bold">C</button>
+                            <button onclick="pressKey('0')" class="numpad-btn h-14 bg-gray-50 rounded-xl text-2xl font-semibold border border-gray-100 text-gray-800">0</button>
+                            <button onclick="pressKey('000')" class="numpad-btn h-14 bg-brand-50 text-brand-600 border border-brand-100 rounded-xl text-lg font-bold tracking-widest">.000</button>
+                        </div>
+                        <div class="col-span-1 flex flex-col gap-2">
+                            <button onclick="pressKey('BACK')" class="numpad-btn flex-1 bg-gray-100 rounded-xl flex items-center justify-center text-gray-600">
+                                <i data-lucide="delete" class="w-8 h-8"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: HISTORY -->
+            <div id="tab-history" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center shrink-0">
+                    <h2 class="font-bold text-lg">Lịch sử giao dịch</h2>
+                </div>
+                <div id="historyList" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
+            </div>
+
+            <!-- TAB 3: CHART -->
+            <div id="tab-chart" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
+                <div class="p-4 border-b border-gray-100 shrink-0">
+                    <h2 class="font-bold text-lg">Thống kê Chi Tiêu</h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col items-center justify-start">
+                    <div class="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <canvas id="expenseChart" width="400" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: SETTINGS -->
+            <div id="tab-settings" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
+                <div class="p-4 border-b border-gray-100 shrink-0">
+                    <h2 class="font-bold text-lg">Cài đặt</h2>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <button onclick="clearAllData()" class="w-full bg-white p-4 rounded-2xl flex items-center gap-4 shadow-sm border border-rose-100 active-scale">
+                        <div class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center">
+                            <i data-lucide="trash-2" class="w-5 h-5 text-rose-500"></i>
+                        </div>
+                        <div class="text-left flex-1">
+                            <p class="font-bold text-gray-900">Xóa toàn bộ dữ liệu</p>
+                            <p class="text-xs text-gray-500">Khôi phục ứng dụng về trạng thái ban đầu</p>
+                        </div>
+                    </button>
+                    <div class="text-center mt-10">
+                        <p class="text-xs text-gray-400">SmartMoney v2.0 - Fast Entry</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- BOTTOM NAVIGATION BAR (Cố định ở đáy) -->
+        <nav class="absolute bottom-0 w-full bg-white border-t border-gray-200 h-[72px] pb-[env(safe-area-inset-bottom,0px)] z-30 flex justify-around items-center px-2">
+            <button onclick="switchTab('tab-home')" id="nav-tab-home" class="nav-btn flex-1 flex flex-col items-center justify-center text-brand-600">
+                <i data-lucide="calculator" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">Nhập</span>
+            </button>
+            <button onclick="switchTab('tab-history')" id="nav-tab-history" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400">
+                <i data-lucide="list-video" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">Lịch sử</span>
+            </button>
+            <button onclick="switchTab('tab-chart')" id="nav-tab-chart" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400">
+                <i data-lucide="pie-chart" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">Biểu đồ</span>
+            </button>
+            <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-400">
+                <i data-lucide="settings" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">Cài đặt</span>
+            </button>
+        </nav>
+
+        <!-- TOAST NOTIFICATION -->
+        <div id="toast" class="absolute top-4 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none z-50 flex items-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl w-11/12 max-w-sm transition-all duration-300">
+            <div class="bg-brand-500 rounded-full p-1"><i data-lucide="check" class="w-4 h-4 text-white" id="toastIcon"></i></div>
+            <span id="toastMsg" class="text-sm font-semibold truncate flex-1">Thành công</span>
+        </div>
+
+        <!-- BOTTOM SHEET (Sửa lỗi DOM) -->
+        <div id="recentSheet" class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-end w-full max-w-md mx-auto">
+            <div class="sheet-overlay absolute inset-0 bg-gray-900/40 opacity-0 backdrop-blur-sm" onclick="closeSheet()"></div>
+            <div class="sheet-content bg-white w-full rounded-t-[32px] p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] transform translate-y-full relative z-10 shadow-2xl">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-5"></div>
+                <h3 class="font-bold text-gray-900 text-center mb-1 text-lg">Lưu nhanh số tiền</h3>
+                <p id="sheetCatName" class="text-sm text-gray-500 text-center mb-5">Danh mục</p>
+                
+                <!-- Vùng chứa các nút sinh bằng Javascript -->
+                <div id="sheetPricesList" class="flex flex-col gap-0">
+                    <!-- DOM elements appended here -->
+                </div>
+                
+                <button onclick="closeSheet()" class="w-full mt-4 py-3.5 bg-gray-100 text-gray-700 rounded-xl font-bold active-scale">Hủy bỏ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MAX_AMOUNT = 10000000000;
+        
+        // Cập nhật Danh mục Mặc định theo yêu cầu
+        const DEFAULT_CATEGORIES = [
+            // Chi
+            { id: 'e1', label: 'Cơm tấm', icon: 'utensils', type: 'expense', color: 'bg-orange-50 text-orange-600' },
+            { id: 'e2', label: 'Chè / Tàu hũ', icon: 'coffee', type: 'expense', color: 'bg-amber-50 text-amber-600' },
+            { id: 'e3', label: 'Gà rán fastfood', icon: 'drumstick', type: 'expense', color: 'bg-red-50 text-red-600' },
+            { id: 'e4', label: 'Shopee / Lazada', icon: 'shopping-bag', type: 'expense', color: 'bg-blue-50 text-blue-600' },
+            { id: 'e5', label: 'Phụ tùng xe', icon: 'wrench', type: 'expense', color: 'bg-gray-100 text-gray-700' },
+            { id: 'e6', label: 'Du lịch biển', icon: 'palmtree', type: 'expense', color: 'bg-cyan-50 text-cyan-600' },
+            { id: 'e7', label: 'Đầu tư cổ phiếu', icon: 'trending-up', type: 'expense', color: 'bg-purple-50 text-purple-600' },
+            // Thu
+            { id: 'i1', label: 'Lương', icon: 'wallet', type: 'income', color: 'bg-brand-100 text-brand-700' },
+            { id: 'i2', label: 'Lãi đầu tư', icon: 'pie-chart', type: 'income', color: 'bg-green-50 text-green-600' },
+            { id: 'i3', label: 'Khác', icon: 'plus-circle', type: 'income', color: 'bg-teal-50 text-teal-600' }
+        ];
+
+        let txType = 'expense';
+        let currentAmountStr = "0";
+        let transactions = JSON.parse(localStorage.getItem('sm_txs_v2')) || [];
+        let categories = JSON.parse(localStorage.getItem('sm_cats_v2')) || DEFAULT_CATEGORIES;
+        
+        let toastTimer = null;
+        let chartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if(!localStorage.getItem('sm_cats_v2')) {
+                localStorage.setItem('sm_cats_v2', JSON.stringify(DEFAULT_CATEGORIES));
+            }
+            setType('expense');
+            updateDashboard();
+            lucide.createIcons();
+        });
+
+        // Đổi Tab Dưới
+        function switchTab(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // Reset icons color
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-brand-600');
+                el.classList.add('text-gray-400');
+            });
+
+            // Show selected
+            document.getElementById(tabId).classList.add('active');
+            const navBtn = document.getElementById('nav-tab-' + tabId.split('-')[1]);
+            navBtn.classList.remove('text-gray-400');
+            navBtn.classList.add('text-brand-600');
+
+            // Specific tab actions
+            if (tabId === 'tab-chart') renderChart();
+            if (tabId === 'tab-history') renderHistory();
+        }
+
+        // Đổi Loại Giao Dịch
+        function setType(type) {
+            txType = type;
+            const btnExp = document.getElementById('btnExpense');
+            const btnInc = document.getElementById('btnIncome');
+            const sign = document.getElementById('displaySign');
+            const catLabel = document.getElementById('catTypeLabel');
+
+            if (type === 'expense') {
+                btnExp.className = "px-3 py-1.5 text-xs font-bold bg-white text-rose-500 shadow-sm rounded-md transition-all";
+                btnInc.className = "px-3 py-1.5 text-xs font-bold text-gray-400 rounded-md transition-all";
+                sign.textContent = "-";
+                sign.className = "text-3xl font-bold text-rose-500";
+                catLabel.textContent = "Khoản Chi";
+                catLabel.className = "text-rose-500 font-bold";
+            } else {
+                btnInc.className = "px-3 py-1.5 text-xs font-bold bg-white text-brand-500 shadow-sm rounded-md transition-all";
+                btnExp.className = "px-3 py-1.5 text-xs font-bold text-gray-400 rounded-md transition-all";
+                sign.textContent = "+";
+                sign.className = "text-3xl font-bold text-brand-500";
+                catLabel.textContent = "Khoản Thu";
+                catLabel.className = "text-brand-500 font-bold";
+            }
+            renderChips();
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('vi-VN').format(num);
+        }
+
+        function updateDisplay() {
+            const num = parseInt(currentAmountStr, 10) || 0;
+            const el = document.getElementById('displayAmount');
+            el.textContent = formatNumber(num);
+        }
+
+        // Bàn phím
+        function pressKey(key) {
+            if (navigator.vibrate) navigator.vibrate(10);
+            
+            if (key === 'C') {
+                currentAmountStr = "0";
+            } else if (key === 'BACK') {
+                currentAmountStr = currentAmountStr.length > 1 ? currentAmountStr.slice(0, -1) : "0";
+            } else {
+                let temp = currentAmountStr;
+                if (key === '000') {
+                    if (temp !== "0") temp += "000";
+                } else {
+                    if (temp === "0") temp = key;
+                    else temp += key;
+                }
+                
+                if (parseInt(temp, 10) <= MAX_AMOUNT) {
+                    currentAmountStr = temp;
+                }
+            }
+            updateDisplay();
+        }
+
+        function renderChips() {
+            const grid = document.getElementById('chipsGrid');
+            const activeCats = categories.filter(c => c.type === txType);
+            
+            grid.innerHTML = activeCats.map(c => `
+                <button onclick="handleCategoryClick('${c.id}')" class="active-scale flex flex-col items-center justify-center p-3 h-[104px] bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center mb-2 ${c.color}">
+                        <i data-lucide="${c.icon}" class="w-6 h-6"></i>
+                    </div>
+                    <span class="text-[11px] font-semibold text-gray-700 leading-tight line-clamp-2">${c.label}</span>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // Click Danh mục
+        function handleCategoryClick(catId) {
+            if (navigator.vibrate) navigator.vibrate(15);
+            
+            const cat = categories.find(c => c.id === catId);
+            if (!cat) return;
+            
+            const amount = parseInt(currentAmountStr, 10) || 0;
+
+            if (amount > 0) {
+                // Đã có số -> Lưu luôn
+                executeSave(amount, cat);
+            } else {
+                // Ô nhập là 0 -> Mở gợi ý
+                const recentAmounts = getRecentUniqueAmounts(cat.label, txType);
+                if (recentAmounts.length > 0) {
+                    openSheet(recentAmounts, cat);
+                } else {
+                    showToast(`Chưa có dữ liệu cho "${cat.label}". Xin hãy nhập số!`, true);
+                }
+            }
+        }
+
+        function getRecentUniqueAmounts(catLabel, type) {
+            const amounts = new Set();
+            for (let tx of transactions) {
+                if (tx.category === catLabel && tx.type === type) {
+                    amounts.add(tx.amount);
+                    if (amounts.size === 3) break;
+                }
+            }
+            return Array.from(amounts);
+        }
+
+        function executeSave(amount, cat) {
+            const tx = {
+                id: Date.now().toString(),
+                amount: amount,
+                category: cat.label,
+                icon: cat.icon,
+                color: cat.color,
+                type: cat.type,
+                timestamp: Date.now()
+            };
+            
+            transactions.unshift(tx);
+            localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+            
+            currentAmountStr = "0";
+            updateDisplay();
+            updateDashboard();
+            
+            showToast(`Đã lưu: ${txType === 'income' ? '+' : '-'}${formatNumber(amount)}đ (${cat.label})`);
+        }
+
+        function openSheet(amounts, cat) {
+            const sheet = document.getElementById('recentSheet');
+            document.getElementById('sheetCatName').textContent = `${cat.label}`;
+            
+            const listContainer = document.getElementById('sheetPricesList');
+            // Xóa sạch các element cũ
+            listContainer.innerHTML = '';
+            
+            // Dùng DOM Manipulation thuần túy để tránh lỗi context
+            amounts.forEach(amt => {
+                const btn = document.createElement('button');
+                btn.className = "active-scale w-full mt-3 py-4 px-6 bg-white border border-gray-200 rounded-2xl flex justify-between items-center shadow-sm text-gray-900";
+                
+                btn.innerHTML = `
+                    <span class="text-xl font-bold text-gray-800">${formatNumber(amt)} <span class="text-sm font-normal text-gray-500">đ</span></span>
+                    <div class="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center">
+                        <i data-lucide="check" class="w-4 h-4 text-brand-600"></i>
+                    </div>
+                `;
+                
+                // Gắn listener trực tiếp, đảm bảo scope lưu được `amt` và `cat`
+                btn.addEventListener('click', () => {
+                    executeSave(amt, cat);
+                    closeSheet();
+                });
+                
+                listContainer.appendChild(btn);
+            });
+            
+            lucide.createIcons({ root: listContainer });
+            sheet.classList.add('sheet-open');
+        }
+
+        function closeSheet() {
+            document.getElementById('recentSheet').classList.remove('sheet-open');
+        }
+
+        // Utils
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const bgNode = toast.querySelector('div.rounded-full');
+            
+            document.getElementById('toastMsg').textContent = msg;
+            
+            if (isError) {
+                bgNode.className = "bg-rose-500 rounded-full p-1";
+                icon.setAttribute('data-lucide', 'alert-circle');
+            } else {
+                bgNode.className = "bg-brand-500 rounded-full p-1";
+                icon.setAttribute('data-lucide', 'check');
+            }
+            lucide.createIcons();
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('toast-enter');
+            
+            if(toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function updateDashboard() {
+            let net = 0;
+            transactions.forEach(t => {
+                if (t.type === 'income') net += t.amount;
+                else net -= t.amount;
+            });
+            
+            const hTotal = document.getElementById('headerTotal');
+            hTotal.textContent = `${net > 0 ? '+' : ''}${formatNumber(net)} đ`;
+            hTotal.className = `text-lg font-bold tracking-tight ${net >= 0 ? 'text-gray-900' : 'text-rose-600'}`;
+            
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (transactions.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-400 mt-20 flex flex-col items-center">
+                    <i data-lucide="inbox" class="w-12 h-12 mb-3 text-gray-300"></i>
+                    <p class="text-sm">Chưa có giao dịch</p>
+                </div>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            list.innerHTML = transactions.map(t => {
+                const isInc = t.type === 'income';
+                const time = new Date(t.timestamp).toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'});
+                return `
+                    <div class="flex justify-between items-center bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${t.color}">
+                                <i data-lucide="${t.icon}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm text-gray-900">${t.category}</p>
+                                <p class="text-[10px] text-gray-500">${time}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold text-base ${isInc ? 'text-brand-600' : 'text-rose-600'}">
+                            ${isInc ? '+' : '-'}${formatNumber(t.amount)}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            // Xóa chart cũ nếu có
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Tính toán data cho Biểu đồ (Tổng Chi theo Danh mục)
+            const expenseData = {};
+            transactions.forEach(t => {
+                if (t.type === 'expense') {
+                    expenseData[t.category] = (expenseData[t.category] || 0) + t.amount;
+                }
+            });
+
+            const labels = Object.keys(expenseData);
+            const data = Object.values(expenseData);
+
+            if (labels.length === 0) {
+                ctx.clearRect(0, 0, 400, 400);
+                ctx.font = "14px Inter";
+                ctx.fillStyle = "#9ca3af";
+                ctx.textAlign = "center";
+                ctx.fillText("Chưa có dữ liệu chi tiêu", 200, 200);
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#f97316', '#f59e0b', '#ef4444', '#3b82f6', 
+                            '#6b7280', '#06b6d4', '#8b5cf6', '#10b981'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function clearAllData() {
+            if(confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu (Lịch sử & Cấu hình)?')) {
+                transactions = [];
+                categories = DEFAULT_CATEGORIES;
+                localStorage.removeItem('sm_txs_v2');
+                localStorage.removeItem('sm_cats_v2');
+                updateDashboard();
+                showToast("Đã khôi phục dữ liệu gốc");
+                switchTab('tab-home');
+            }
+        }
+    </script>
+</body>
+</html>
