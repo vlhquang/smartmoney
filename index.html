@@ -44,7 +44,7 @@
         .sheet-overlay { transition: opacity 0.3s ease; }
         .sheet-content { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .sheet-open .sheet-overlay { opacity: 1; pointer-events: auto; }
-        .sheet-open .sheet-content { transform: translateY(0); }
+        .sheet-open .sheet-content { transform: translateY(0); pointer-events: auto; }
 
         /* Hide tabs by default, handle via JS */
         .tab-content { display: none; }
@@ -128,11 +128,29 @@
             <!-- TAB 3: CHART -->
             <div id="tab-chart" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
                 <div class="p-4 border-b border-gray-100 shrink-0">
-                    <h2 class="font-bold text-lg">Thống kê Chi Tiêu</h2>
+                        <h2 class="font-bold text-lg">Thống kê Thu Chi</h2>
                 </div>
-                <div class="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col items-center justify-start">
-                    <div class="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex-1 min-h-0 overflow-y-auto p-4 bg-gray-50">
+                    <div class="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <label class="text-xs font-semibold text-gray-500">
+                                Từ ngày
+                                <input id="chartDateFrom" type="date" onchange="renderChart()" class="mt-1 w-full min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                            </label>
+                            <label class="text-xs font-semibold text-gray-500">
+                                Đến ngày
+                                <input id="chartDateTo" type="date" onchange="renderChart()" class="mt-1 w-full min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                            </label>
+                        </div>
+                        <p id="chartRangeSummary" class="text-xs text-gray-500 mb-2"></p>
                         <canvas id="expenseChart" width="400" height="400"></canvas>
+                    </div>
+                    <div class="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-900">Giao dịch trong khoảng chọn</h3>
+                            <span id="chartTransactionCount" class="text-xs text-gray-400"></span>
+                        </div>
+                        <div id="chartTransactionList" class="max-h-[420px] overflow-y-auto p-3 space-y-2"></div>
                     </div>
                 </div>
             </div>
@@ -143,6 +161,67 @@
                     <h2 class="font-bold text-lg">Cài đặt</h2>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-3">
+                            <div>
+                                <h3 class="font-bold text-gray-900">Sao lưu dữ liệu</h3>
+                                <p class="text-xs text-gray-500 mt-1">Tải giao dịch và danh mục về máy</p>
+                            </div>
+                            <button onclick="exportDataJson()" aria-label="Xuất file JSON" class="px-3 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold active-scale">Xuất JSON</button>
+                        </div>
+                    </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                            <div class="mb-3">
+                                <h3 class="font-bold text-gray-900">Mật khẩu truy cập</h3>
+                                <p class="text-xs text-gray-500 mt-1">Yêu cầu nhập lại sau thời gian hết hạn</p>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="block text-xs font-semibold text-gray-500">
+                                    Mật khẩu
+                                    <input id="accessPasswordSetting" type="password" autocomplete="new-password" class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                                </label>
+                                <label class="block text-xs font-semibold text-gray-500">
+                                    Hết hạn sau (giây)
+                                    <input id="accessExpirySetting" type="number" min="1" step="1" class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                                </label>
+                                <button onclick="saveAccessSettings()" class="w-full py-2.5 bg-gray-900 text-white rounded-lg text-xs font-bold active-scale">Lưu cấu hình mật khẩu</button>
+                            </div>
+                        </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-3">
+                            <div>
+                                <h3 class="font-bold text-gray-900">Đồng bộ Supabase</h3>
+                                <p id="syncStatus" class="text-xs text-gray-500 mt-1">Chưa cấu hình</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="syncEnabled" type="checkbox" onchange="saveSyncSettings()" class="sr-only peer">
+                                <span class="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-brand-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></span>
+                            </label>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="block text-xs font-semibold text-gray-500">
+                                Giờ đồng bộ mỗi ngày
+                                <input id="syncTime" type="time" value="22:00" onchange="saveSyncSettings()" class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                            </label>
+                            <label class="block text-xs font-semibold text-gray-500">
+                                Supabase URL
+                                <input id="supabaseUrl" type="url" placeholder="https://your-project.supabase.co" onchange="saveSyncSettings()" class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                            </label>
+                            <label class="block text-xs font-semibold text-gray-500">
+                                Supabase anon key
+                                <input id="supabaseAnonKey" type="password" placeholder="eyJ..." onchange="saveSyncSettings()" class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                            </label>
+                            <button onclick="syncToSupabase(true)" class="w-full py-2.5 bg-gray-900 text-white rounded-lg text-xs font-bold active-scale">Đồng bộ ngay</button>
+                            <p class="text-[10px] leading-relaxed text-gray-400">Cần tạo bảng <span class="font-semibold">smartmoney_backups</span> với cột <span class="font-semibold">id</span> (text, primary key), <span class="font-semibold">payload</span> (jsonb), <span class="font-semibold">updated_at</span> (timestamptz).</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-gray-900">Danh mục</h3>
+                            <button onclick="addCategory()" class="px-3 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold active-scale">+ Thêm</button>
+                        </div>
+                        <div id="categorySettingsList" class="space-y-2"></div>
+                    </div>
                     <button onclick="clearAllData()" class="w-full bg-white p-4 rounded-2xl flex items-center gap-4 shadow-sm border border-rose-100 active-scale">
                         <div class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center">
                             <i data-lucide="trash-2" class="w-5 h-5 text-rose-500"></i>
@@ -183,6 +262,19 @@
         <div id="toast" class="absolute top-4 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none z-50 flex items-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl w-11/12 max-w-sm transition-all duration-300">
             <div class="bg-brand-500 rounded-full p-1"><i data-lucide="check" class="w-4 h-4 text-white" id="toastIcon"></i></div>
             <span id="toastMsg" class="text-sm font-semibold truncate flex-1">Thành công</span>
+        </div>
+
+        <div id="accessGate" class="fixed inset-0 z-[60] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-5">
+            <form onsubmit="unlockAccess(event)" class="w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl">
+                <div class="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="lock" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-lg font-bold text-gray-900 text-center">Nhập mật khẩu truy cập</h2>
+                <p id="accessExpiryMessage" class="text-xs text-gray-500 text-center mt-1 mb-4">Phiên truy cập đã hết hạn</p>
+                <input id="accessPasswordInput" type="password" autocomplete="current-password" autofocus class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-center tracking-widest" placeholder="Mật khẩu">
+                <p id="accessError" class="hidden text-xs text-rose-500 text-center mt-2">Mật khẩu không đúng</p>
+                <button type="submit" class="w-full mt-4 py-3 bg-brand-600 text-white rounded-xl font-bold active-scale">Mở ứng dụng</button>
+            </form>
         </div>
 
         <!-- BOTTOM SHEET (Sửa lỗi DOM) -->
@@ -229,6 +321,14 @@
         
         let toastTimer = null;
         let chartInstance = null;
+        let chartFilteredTransactions = [];
+        let chartTransactionPage = 0;
+        const CHART_PAGE_SIZE = 10;
+        const SYNC_SETTINGS_KEY = 'sm_sync_v1';
+        const DEVICE_ID_KEY = 'sm_device_id_v1';
+        const ACCESS_SETTINGS_KEY = 'sm_access_v1';
+        const ACCESS_GRANTED_AT_KEY = 'sm_access_granted_at_v1';
+        let syncTimer = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             if(!localStorage.getItem('sm_cats_v2')) {
@@ -236,6 +336,10 @@
             }
             setType('expense');
             updateDashboard();
+            loadAccessSettings();
+            loadSyncSettings();
+            syncTimer = setInterval(checkScheduledSync, 60000);
+            checkScheduledSync();
             lucide.createIcons();
         });
 
@@ -258,6 +362,7 @@
             // Specific tab actions
             if (tabId === 'tab-chart') renderChart();
             if (tabId === 'tab-history') renderHistory();
+            if (tabId === 'tab-settings') renderCategorySettings();
         }
 
         // Đổi Loại Giao Dịch
@@ -390,6 +495,191 @@
             showToast(`Đã lưu: ${txType === 'income' ? '+' : '-'}${formatNumber(amount)}đ (${cat.label})`);
         }
 
+        function exportDataJson() {
+            const backup = {
+                version: 2,
+                exportedAt: new Date().toISOString(),
+                transactions,
+                categories
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `smartmoney-backup-${toDateInputValue(new Date())}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            showToast('Đã xuất file JSON');
+        }
+
+        function getAccessSettings() {
+            const saved = JSON.parse(localStorage.getItem(ACCESS_SETTINGS_KEY) || '{}');
+            return {
+                password: saved.password || '123',
+                expirySeconds: Number.isFinite(Number(saved.expirySeconds)) && Number(saved.expirySeconds) > 0
+                    ? Number(saved.expirySeconds)
+                    : 86400
+            };
+        }
+
+        function loadAccessSettings() {
+            const settings = getAccessSettings();
+            localStorage.setItem(ACCESS_SETTINGS_KEY, JSON.stringify(settings));
+            document.getElementById('accessPasswordSetting').value = settings.password;
+            document.getElementById('accessExpirySetting').value = settings.expirySeconds;
+            if (isAccessGranted(settings)) hideAccessGate();
+        }
+
+        function isAccessGranted(settings = getAccessSettings()) {
+            const grantedAt = Number(localStorage.getItem(ACCESS_GRANTED_AT_KEY));
+            return Number.isFinite(grantedAt) && Date.now() - grantedAt < settings.expirySeconds * 1000;
+        }
+
+        function unlockAccess(event) {
+            event.preventDefault();
+            const input = document.getElementById('accessPasswordInput');
+            const error = document.getElementById('accessError');
+            if (input.value !== getAccessSettings().password) {
+                error.classList.remove('hidden');
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            localStorage.setItem(ACCESS_GRANTED_AT_KEY, Date.now().toString());
+            error.classList.add('hidden');
+            input.value = '';
+            hideAccessGate();
+        }
+
+        function hideAccessGate() {
+            document.getElementById('accessGate').classList.add('hidden');
+        }
+
+        function lockAccess(message = 'Phiên truy cập đã hết hạn') {
+            localStorage.removeItem(ACCESS_GRANTED_AT_KEY);
+            document.getElementById('accessExpiryMessage').textContent = message;
+            document.getElementById('accessGate').classList.remove('hidden');
+            document.getElementById('accessPasswordInput').focus();
+        }
+
+        function saveAccessSettings() {
+            const password = document.getElementById('accessPasswordSetting').value;
+            const expirySeconds = Number(document.getElementById('accessExpirySetting').value);
+            if (!password || !Number.isInteger(expirySeconds) || expirySeconds < 1) {
+                showToast('Mật khẩu và thời hạn không hợp lệ', true);
+                return;
+            }
+
+            localStorage.setItem(ACCESS_SETTINGS_KEY, JSON.stringify({ password, expirySeconds }));
+            lockAccess('Cấu hình đã thay đổi, hãy nhập mật khẩu mới');
+        }
+
+        function getSyncSettings() {
+            const saved = JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || '{}');
+            return {
+                enabled: saved.enabled !== false,
+                time: saved.time || '22:00',
+                supabaseUrl: saved.supabaseUrl || '',
+                supabaseAnonKey: saved.supabaseAnonKey || '',
+                lastSyncDate: saved.lastSyncDate || ''
+            };
+        }
+
+        function loadSyncSettings() {
+            const settings = getSyncSettings();
+            document.getElementById('syncEnabled').checked = settings.enabled;
+            document.getElementById('syncTime').value = settings.time;
+            document.getElementById('supabaseUrl').value = settings.supabaseUrl;
+            document.getElementById('supabaseAnonKey').value = settings.supabaseAnonKey;
+            updateSyncStatus(settings);
+        }
+
+        function saveSyncSettings() {
+            const current = getSyncSettings();
+            const settings = {
+                ...current,
+                enabled: document.getElementById('syncEnabled').checked,
+                time: document.getElementById('syncTime').value || '22:00',
+                supabaseUrl: document.getElementById('supabaseUrl').value.trim().replace(/\/$/, ''),
+                supabaseAnonKey: document.getElementById('supabaseAnonKey').value.trim()
+            };
+            localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify(settings));
+            updateSyncStatus(settings);
+        }
+
+        function updateSyncStatus(settings) {
+            const status = document.getElementById('syncStatus');
+            if (!status) return;
+            if (!settings.enabled) {
+                status.textContent = 'Đang tắt';
+            } else if (!settings.supabaseUrl || !settings.supabaseAnonKey) {
+                status.textContent = `Đã bật, chờ cấu hình lúc ${settings.time}`;
+            } else if (settings.lastSyncDate) {
+                status.textContent = `Lần cuối: ${settings.lastSyncDate}`;
+            } else {
+                status.textContent = `Đã bật, tự đồng bộ lúc ${settings.time}`;
+            }
+        }
+
+        function getDeviceId() {
+            let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+            if (!deviceId) {
+                deviceId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                localStorage.setItem(DEVICE_ID_KEY, deviceId);
+            }
+            return deviceId;
+        }
+
+        function checkScheduledSync() {
+            const settings = getSyncSettings();
+            if (!settings.enabled || !settings.supabaseUrl || !settings.supabaseAnonKey) return;
+
+            const now = new Date();
+            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const today = toDateInputValue(now);
+            if (currentTime >= settings.time && settings.lastSyncDate !== today) {
+                syncToSupabase(false);
+            }
+        }
+
+        async function syncToSupabase(manual = false) {
+            const settings = getSyncSettings();
+            if (!settings.supabaseUrl || !settings.supabaseAnonKey) {
+                updateSyncStatus(settings);
+                if (manual) showToast('Hãy nhập Supabase URL và anon key', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${settings.supabaseUrl}/rest/v1/smartmoney_backups`, {
+                    method: 'POST',
+                    headers: {
+                        apikey: settings.supabaseAnonKey,
+                        Authorization: `Bearer ${settings.supabaseAnonKey}`,
+                        'Content-Type': 'application/json',
+                        Prefer: 'resolution=merge-duplicates,return=minimal'
+                    },
+                    body: JSON.stringify({
+                        id: getDeviceId(),
+                        payload: { version: 2, transactions, categories },
+                        updated_at: new Date().toISOString()
+                    })
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const updatedSettings = { ...settings, lastSyncDate: toDateInputValue(new Date()) };
+                localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify(updatedSettings));
+                updateSyncStatus(updatedSettings);
+                if (manual) showToast('Đã đồng bộ lên Supabase');
+            } catch (error) {
+                console.error('Supabase sync failed:', error);
+                if (manual) showToast('Đồng bộ Supabase thất bại', true);
+            }
+        }
+
         function openSheet(amounts, cat) {
             const sheet = document.getElementById('recentSheet');
             document.getElementById('sheetCatName').textContent = `${cat.label}`;
@@ -466,6 +756,7 @@
             hTotal.className = `text-lg font-bold tracking-tight ${net >= 0 ? 'text-gray-900' : 'text-rose-600'}`;
             
             renderHistory();
+            if (document.getElementById('tab-chart').classList.contains('active')) renderChart();
         }
 
         function renderHistory() {
@@ -493,66 +784,289 @@
                                 <p class="text-[10px] text-gray-500">${time}</p>
                             </div>
                         </div>
-                        <span class="font-bold text-base ${isInc ? 'text-brand-600' : 'text-rose-600'}">
-                            ${isInc ? '+' : '-'}${formatNumber(t.amount)}
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-base ${isInc ? 'text-brand-600' : 'text-rose-600'}">
+                                ${isInc ? '+' : '-'}${formatNumber(t.amount)}
+                            </span>
+                            <button onclick="editTransaction('${t.id}')" aria-label="Sửa giao dịch" class="p-2 text-gray-400 active-scale">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteTransaction('${t.id}')" aria-label="Xóa giao dịch" class="p-2 text-rose-400 active-scale">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
             lucide.createIcons();
         }
 
+        function renderCategorySettings() {
+            const list = document.getElementById('categorySettingsList');
+            if (!list) return;
+
+            list.innerHTML = categories.map(cat => `
+                <div class="flex items-center gap-2 border-b border-gray-100 last:border-0 py-2">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center ${cat.color}">
+                        <i data-lucide="${cat.icon}" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-800 truncate">${cat.label}</p>
+                        <p class="text-[10px] text-gray-400">${cat.type === 'income' ? 'Khoản thu' : 'Khoản chi'}</p>
+                    </div>
+                    <button onclick="editCategory('${cat.id}')" aria-label="Sửa danh mục" class="p-2 text-gray-400 active-scale">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteCategory('${cat.id}')" aria-label="Xóa danh mục" class="p-2 text-rose-400 active-scale">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons({ root: list });
+        }
+
+        function persistCategories() {
+            localStorage.setItem('sm_cats_v2', JSON.stringify(categories));
+            renderChips();
+            renderCategorySettings();
+        }
+
+        function addCategory() {
+            const label = prompt('Tên danh mục mới:');
+            if (!label || !label.trim()) return;
+
+            const typeInput = prompt('Loại danh mục: nhập "expense" cho khoản chi hoặc "income" cho khoản thu', 'expense');
+            if (typeInput === null) return;
+            const type = typeInput.trim().toLowerCase();
+            if (type !== 'expense' && type !== 'income') {
+                showToast('Loại danh mục không hợp lệ', true);
+                return;
+            }
+
+            categories.push({
+                id: `custom-${Date.now()}`,
+                label: label.trim(),
+                icon: 'tag',
+                type,
+                color: type === 'income' ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-700'
+            });
+            persistCategories();
+            showToast(`Đã thêm danh mục "${label.trim()}"`);
+        }
+
+        function editCategory(catId) {
+            const cat = categories.find(item => item.id === catId);
+            if (!cat) return;
+
+            const label = prompt('Tên danh mục mới:', cat.label);
+            if (!label || !label.trim() || label.trim() === cat.label) return;
+
+            const newLabel = label.trim();
+            transactions.forEach(tx => {
+                if (tx.category === cat.label && tx.type === cat.type) tx.category = newLabel;
+            });
+            cat.label = newLabel;
+            localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+            persistCategories();
+            updateDashboard();
+            showToast('Đã cập nhật danh mục');
+        }
+
+        function deleteCategory(catId) {
+            const cat = categories.find(item => item.id === catId);
+            if (!cat) return;
+            if (!confirm(`Xóa danh mục "${cat.label}"? Giao dịch cũ vẫn được giữ trong lịch sử.`)) return;
+
+            categories = categories.filter(item => item.id !== catId);
+            persistCategories();
+            showToast('Đã xóa danh mục');
+        }
+
+        function editTransaction(txId) {
+            const tx = transactions.find(item => item.id === txId);
+            if (!tx) return;
+
+            const amountInput = prompt('Số tiền mới:', tx.amount.toString());
+            if (amountInput === null) return;
+            const amount = parseInt(amountInput.replace(/\D/g, ''), 10);
+            if (!amount || amount > MAX_AMOUNT) {
+                showToast('Số tiền không hợp lệ', true);
+                return;
+            }
+
+            const availableCategories = categories.filter(cat => cat.type === tx.type);
+            const categoryNames = availableCategories.map(cat => cat.label).join(', ');
+            const categoryInput = prompt(`Danh mục mới (${categoryNames}):`, tx.category);
+            if (categoryInput === null) return;
+            const category = availableCategories.find(cat => cat.label.toLowerCase() === categoryInput.trim().toLowerCase());
+            if (!category) {
+                showToast('Danh mục không hợp lệ', true);
+                return;
+            }
+
+            tx.amount = amount;
+            tx.category = category.label;
+            tx.icon = category.icon;
+            tx.color = category.color;
+            localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+            updateDashboard();
+            showToast('Đã cập nhật giao dịch');
+        }
+
+        function deleteTransaction(txId) {
+            const tx = transactions.find(item => item.id === txId);
+            if (!tx || !confirm(`Xóa giao dịch ${formatNumber(tx.amount)}đ của "${tx.category}"?`)) return;
+
+            transactions = transactions.filter(item => item.id !== txId);
+            localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+            updateDashboard();
+            showToast('Đã xóa giao dịch');
+        }
+
         function renderChart() {
             const ctx = document.getElementById('expenseChart').getContext('2d');
+
+            const range = getChartDateRange();
+            chartFilteredTransactions = transactions
+                .filter(tx => tx.timestamp >= range.from && tx.timestamp <= range.to)
+                .sort((a, b) => b.timestamp - a.timestamp);
+            chartTransactionPage = 0;
+            renderChartTransactions();
             
             // Xóa chart cũ nếu có
             if (chartInstance) {
                 chartInstance.destroy();
             }
 
-            // Tính toán data cho Biểu đồ (Tổng Chi theo Danh mục)
+            const incomeData = {};
             const expenseData = {};
-            transactions.forEach(t => {
-                if (t.type === 'expense') {
-                    expenseData[t.category] = (expenseData[t.category] || 0) + t.amount;
-                }
+            chartFilteredTransactions.forEach(t => {
+                const target = t.type === 'income' ? incomeData : expenseData;
+                target[t.category] = (target[t.category] || 0) + t.amount;
             });
 
-            const labels = Object.keys(expenseData);
-            const data = Object.values(expenseData);
+            const totalIncome = Object.values(incomeData).reduce((sum, amount) => sum + amount, 0);
+            const totalExpense = Object.values(expenseData).reduce((sum, amount) => sum + amount, 0);
 
-            if (labels.length === 0) {
+            document.getElementById('chartRangeSummary').textContent =
+                `${formatDateForDisplay(range.from)} - ${formatDateForDisplay(range.to)} | Thu: +${formatNumber(totalIncome)} đ | Chi: -${formatNumber(totalExpense)} đ`;
+
+            if (totalIncome === 0 && totalExpense === 0) {
                 ctx.clearRect(0, 0, 400, 400);
                 ctx.font = "14px Inter";
                 ctx.fillStyle = "#9ca3af";
                 ctx.textAlign = "center";
-                ctx.fillText("Chưa có dữ liệu chi tiêu", 200, 200);
+                ctx.fillText("Chưa có dữ liệu thu chi", 200, 200);
                 return;
             }
 
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: [
-                            '#f97316', '#f59e0b', '#ef4444', '#3b82f6', 
-                            '#6b7280', '#06b6d4', '#8b5cf6', '#10b981'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
+                    labels: ['Thu', 'Chi'],
+                    datasets: [
+                        {
+                            data: [totalIncome, totalExpense],
+                            backgroundColor: ['#10b981', '#f43f5e'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } }
+                        legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${context.label}: ${formatNumber(context.raw)} đ`
+                            }
+                        }
                     },
-                    cutout: '65%'
+                    cutout: '62%'
                 }
             });
         }
+
+        function getChartDateRange() {
+            const fromInput = document.getElementById('chartDateFrom');
+            const toInput = document.getElementById('chartDateTo');
+            const timestamps = transactions.map(tx => tx.timestamp).filter(Number.isFinite);
+            const earliest = timestamps.length ? new Date(Math.min(...timestamps)) : new Date();
+            const latest = timestamps.length ? new Date(Math.max(...timestamps)) : new Date();
+
+            if (!fromInput.value) fromInput.value = toDateInputValue(earliest);
+            if (!toInput.value) toInput.value = toDateInputValue(latest);
+
+            let from = new Date(`${fromInput.value}T00:00:00`).getTime();
+            let to = new Date(`${toInput.value}T23:59:59.999`).getTime();
+            if (!Number.isFinite(from) || !Number.isFinite(to)) {
+                from = new Date(0).getTime();
+                to = new Date(8640000000000000).getTime();
+            }
+            if (from > to) {
+                showToast('Khoảng ngày không hợp lệ', true);
+                to = from;
+            }
+            return { from, to };
+        }
+
+        function toDateInputValue(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateForDisplay(timestamp) {
+            return new Date(timestamp).toLocaleDateString('vi-VN');
+        }
+
+        function renderChartTransactions() {
+            const list = document.getElementById('chartTransactionList');
+            const count = document.getElementById('chartTransactionCount');
+            if (!list || !count) return;
+
+            const visibleCount = Math.min((chartTransactionPage + 1) * CHART_PAGE_SIZE, chartFilteredTransactions.length);
+            count.textContent = `${chartFilteredTransactions.length} giao dịch`;
+            list.innerHTML = chartFilteredTransactions.slice(0, visibleCount).map(tx => {
+                const time = new Date(tx.timestamp).toLocaleString('vi-VN', {
+                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                });
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center ${tx.color}">
+                            <i data-lucide="${tx.icon}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-800 truncate">${tx.category}</p>
+                            <p class="text-[10px] text-gray-500">${time}</p>
+                        </div>
+                        <span class="font-bold text-sm ${tx.type === 'income' ? 'text-brand-600' : 'text-rose-600'}">
+                            ${tx.type === 'income' ? '+' : '-'}${formatNumber(tx.amount)} đ
+                        </span>
+                    </div>
+                `;
+            }).join('');
+
+            if (chartFilteredTransactions.length === 0) {
+                list.innerHTML = '<p class="text-center text-sm text-gray-400 py-8">Không có giao dịch thu chi</p>';
+            }
+            lucide.createIcons({ root: list });
+        }
+
+        function loadMoreChartTransactions() {
+            if (chartTransactionPage * CHART_PAGE_SIZE >= chartFilteredTransactions.length) return;
+            chartTransactionPage += 1;
+            renderChartTransactions();
+        }
+
+        document.getElementById('chartTransactionList').addEventListener('scroll', event => {
+            const list = event.currentTarget;
+            if (list.scrollTop + list.clientHeight >= list.scrollHeight - 40) {
+                loadMoreChartTransactions();
+            }
+        });
 
         function clearAllData() {
             if(confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu (Lịch sử & Cấu hình)?')) {
@@ -561,6 +1075,7 @@
                 localStorage.removeItem('sm_txs_v2');
                 localStorage.removeItem('sm_cats_v2');
                 updateDashboard();
+                renderCategorySettings();
                 showToast("Đã khôi phục dữ liệu gốc");
                 switchTab('tab-home');
             }
