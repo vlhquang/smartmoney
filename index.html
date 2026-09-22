@@ -277,6 +277,33 @@
             </form>
         </div>
 
+        <div id="categoryEditor" class="hidden fixed inset-0 z-[55] bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-5">
+            <form onsubmit="saveCategoryEditor(event)" class="w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl">
+                <h2 id="categoryEditorTitle" class="text-lg font-bold text-gray-900 mb-4">Thêm danh mục</h2>
+                <input id="categoryEditorId" type="hidden">
+                <label class="block text-xs font-semibold text-gray-500 mb-3">
+                    Tên danh mục
+                    <input id="categoryEditorLabel" required class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800" placeholder="Ví dụ: Ăn sáng">
+                </label>
+                <label class="block text-xs font-semibold text-gray-500 mb-3">
+                    Loại
+                    <select id="categoryEditorType" onchange="renderCategoryIconOptions()" class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                        <option value="expense">Khoản chi</option>
+                        <option value="income">Khoản thu</option>
+                    </select>
+                </label>
+                <label class="block text-xs font-semibold text-gray-500">
+                    Icon
+                    <input id="categoryEditorIcon" type="hidden" value="tag">
+                </label>
+                <div id="categoryIconOptions" class="grid grid-cols-4 gap-2 mt-2 max-h-52 overflow-y-auto"></div>
+                <div class="flex gap-2 mt-5">
+                    <button type="button" onclick="closeCategoryEditor()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold active-scale">Hủy</button>
+                    <button type="submit" class="flex-1 py-3 bg-brand-600 text-white rounded-lg font-bold active-scale">Lưu</button>
+                </div>
+            </form>
+        </div>
+
         <!-- BOTTOM SHEET (Sửa lỗi DOM) -->
         <div id="recentSheet" class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-end w-full max-w-md mx-auto">
             <div class="sheet-overlay absolute inset-0 bg-gray-900/40 opacity-0 backdrop-blur-sm" onclick="closeSheet()"></div>
@@ -312,6 +339,22 @@
             { id: 'i1', label: 'Lương', icon: 'wallet', type: 'income', color: 'bg-brand-100 text-brand-700' },
             { id: 'i2', label: 'Lãi đầu tư', icon: 'pie-chart', type: 'income', color: 'bg-green-50 text-green-600' },
             { id: 'i3', label: 'Khác', icon: 'plus-circle', type: 'income', color: 'bg-teal-50 text-teal-600' }
+        ];
+
+        const CATEGORY_ICONS = [
+            { value: 'coffee', label: 'Ăn sáng / Cà phê' },
+            { value: 'utensils', label: 'Ăn trưa / Ăn tối' },
+            { value: 'soup', label: 'Món nước' },
+            { value: 'glass-water', label: 'Uống nước' },
+            { value: 'shopping-cart', label: 'Siêu thị' },
+            { value: 'shopping-bag', label: 'Mua sắm TMĐT' },
+            { value: 'gamepad-2', label: 'Vui chơi / Giải trí' },
+            { value: 'car', label: 'Đi lại' },
+            { value: 'home', label: 'Nhà cửa' },
+            { value: 'heart-pulse', label: 'Sức khỏe' },
+            { value: 'wallet', label: 'Tiền lương' },
+            { value: 'trending-up', label: 'Đầu tư' },
+            { value: 'tag', label: 'Khác' }
         ];
 
         let txType = 'expense';
@@ -832,44 +875,86 @@
         }
 
         function addCategory() {
-            const label = prompt('Tên danh mục mới:');
-            if (!label || !label.trim()) return;
-
-            const typeInput = prompt('Loại danh mục: nhập "expense" cho khoản chi hoặc "income" cho khoản thu', 'expense');
-            if (typeInput === null) return;
-            const type = typeInput.trim().toLowerCase();
-            if (type !== 'expense' && type !== 'income') {
-                showToast('Loại danh mục không hợp lệ', true);
-                return;
-            }
-
-            categories.push({
-                id: `custom-${Date.now()}`,
-                label: label.trim(),
-                icon: 'tag',
-                type,
-                color: type === 'income' ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-700'
-            });
-            persistCategories();
-            showToast(`Đã thêm danh mục "${label.trim()}"`);
+            openCategoryEditor();
         }
 
         function editCategory(catId) {
             const cat = categories.find(item => item.id === catId);
             if (!cat) return;
+            openCategoryEditor(cat);
+        }
 
-            const label = prompt('Tên danh mục mới:', cat.label);
-            if (!label || !label.trim() || label.trim() === cat.label) return;
+        function openCategoryEditor(category = null) {
+            document.getElementById('categoryEditorTitle').textContent = category ? 'Sửa danh mục' : 'Thêm danh mục';
+            document.getElementById('categoryEditorId').value = category ? category.id : '';
+            document.getElementById('categoryEditorLabel').value = category ? category.label : '';
+            document.getElementById('categoryEditorType').value = category ? category.type : 'expense';
+            document.getElementById('categoryEditorIcon').value = category && CATEGORY_ICONS.some(icon => icon.value === category.icon) ? category.icon : 'tag';
+            renderCategoryIconOptions();
+            document.getElementById('categoryEditor').classList.remove('hidden');
+            document.getElementById('categoryEditorLabel').focus();
+        }
 
-            const newLabel = label.trim();
-            transactions.forEach(tx => {
-                if (tx.category === cat.label && tx.type === cat.type) tx.category = newLabel;
-            });
-            cat.label = newLabel;
-            localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+        function closeCategoryEditor() {
+            document.getElementById('categoryEditor').classList.add('hidden');
+        }
+
+        function renderCategoryIconOptions() {
+            const type = document.getElementById('categoryEditorType').value;
+            const selectedIcon = document.getElementById('categoryEditorIcon').value;
+            const list = document.getElementById('categoryIconOptions');
+            const iconColor = type === 'income'
+                ? 'bg-green-50 text-green-600 border-green-200'
+                : 'bg-rose-50 text-rose-600 border-rose-200';
+            list.innerHTML = CATEGORY_ICONS.map(icon => `
+                <button type="button" onclick="selectCategoryIcon('${icon.value}')" class="category-icon-option ${iconColor} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border rounded-xl p-2 flex flex-col items-center justify-center gap-1 min-h-[68px] active-scale" title="${icon.label}">
+                    <i data-lucide="${icon.value}" class="w-5 h-5"></i>
+                    <span class="text-[9px] font-semibold leading-tight text-center">${icon.label}</span>
+                </button>
+            `).join('');
+            lucide.createIcons({ root: list });
+        }
+
+        function selectCategoryIcon(icon) {
+            document.getElementById('categoryEditorIcon').value = icon;
+            renderCategoryIconOptions();
+        }
+
+        function saveCategoryEditor(event) {
+            event.preventDefault();
+            const id = document.getElementById('categoryEditorId').value;
+            const label = document.getElementById('categoryEditorLabel').value.trim();
+            const type = document.getElementById('categoryEditorType').value;
+            const icon = document.getElementById('categoryEditorIcon').value;
+            if (!label) return;
+
+            const color = type === 'income' ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-700';
+            const existing = categories.find(item => item.id === id);
+            if (existing) {
+                const oldLabel = existing.label;
+                const oldType = existing.type;
+                transactions.forEach(tx => {
+                    if (tx.category === oldLabel && tx.type === oldType) {
+                        tx.category = label;
+                        tx.type = type;
+                        tx.icon = icon;
+                        tx.color = color;
+                    }
+                });
+                existing.label = label;
+                existing.type = type;
+                existing.icon = icon;
+                existing.color = color;
+                localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+                showToast('Đã cập nhật danh mục');
+            } else {
+                categories.push({ id: `custom-${Date.now()}`, label, icon, type, color });
+                showToast(`Đã thêm danh mục "${label}"`);
+            }
+
             persistCategories();
             updateDashboard();
-            showToast('Đã cập nhật danh mục');
+            closeCategoryEditor();
         }
 
         function deleteCategory(catId) {
