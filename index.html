@@ -77,8 +77,7 @@
                 <!-- Display Amount -->
                 <div class="shrink-0 flex justify-center items-center h-24 bg-white shadow-sm z-10 relative">
                     <div class="flex items-baseline gap-1">
-                        <span id="displaySign" class="text-3xl font-bold text-rose-500">-</span>
-                        <span id="displayAmount" class="text-5xl font-black tracking-tighter text-gray-900 transition-transform duration-100">0</span>
+                        <span id="displayAmount" class="text-5xl font-black tracking-tighter text-rose-500 transition-transform duration-100">0</span>
                         <span class="text-xl font-bold text-gray-400 ml-1">đ</span>
                     </div>
                 </div>
@@ -167,7 +166,11 @@
                                 <h3 class="font-bold text-gray-900">Sao lưu dữ liệu</h3>
                                 <p class="text-xs text-gray-500 mt-1">Tải giao dịch và danh mục về máy</p>
                             </div>
-                            <button onclick="exportDataJson()" aria-label="Xuất file JSON" class="px-3 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold active-scale">Xuất JSON</button>
+                            <div class="flex gap-2">
+                                <input id="importJsonInput" type="file" accept="application/json,.json" onchange="importDataJson(event)" class="hidden">
+                                <button onclick="document.getElementById('importJsonInput').click()" aria-label="Nhập file JSON" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold active-scale">Nhập JSON</button>
+                                <button onclick="exportDataJson()" aria-label="Xuất file JSON" class="px-3 py-2 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold active-scale">Xuất JSON</button>
+                            </div>
                         </div>
                     </div>
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -281,6 +284,7 @@
             <form onsubmit="saveCategoryEditor(event)" class="w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl">
                 <h2 id="categoryEditorTitle" class="text-lg font-bold text-gray-900 mb-4">Thêm danh mục</h2>
                 <input id="categoryEditorId" type="hidden">
+                <input id="categoryEditorColor" type="hidden">
                 <label class="block text-xs font-semibold text-gray-500 mb-3">
                     Tên danh mục
                     <input id="categoryEditorLabel" required class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800" placeholder="Ví dụ: Ăn sáng">
@@ -299,6 +303,43 @@
                 <div id="categoryIconOptions" class="grid grid-cols-4 gap-2 mt-2 max-h-52 overflow-y-auto"></div>
                 <div class="flex gap-2 mt-5">
                     <button type="button" onclick="closeCategoryEditor()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold active-scale">Hủy</button>
+                    <button type="submit" class="flex-1 py-3 bg-brand-600 text-white rounded-lg font-bold active-scale">Lưu</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="transactionEditor" class="hidden fixed inset-0 z-[55] bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-5">
+            <form onsubmit="saveTransactionEditor(event)" class="w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl max-h-[90dvh] overflow-y-auto">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">Sửa giao dịch</h2>
+                <input id="transactionEditorId" type="hidden">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <label class="block text-xs font-semibold text-gray-500">
+                        Số tiền
+                        <input id="transactionEditorAmount" type="number" min="1" max="10000000000" step="1" required class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                    </label>
+                    <label class="block text-xs font-semibold text-gray-500">
+                        Ngày giao dịch
+                        <input id="transactionEditorDate" type="date" required class="mt-1 w-full min-w-0 px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                    </label>
+                </div>
+                <label class="block text-xs font-semibold text-gray-500 mb-3">
+                    Loại giao dịch
+                    <select id="transactionEditorType" onchange="renderTransactionCategoryOptions()" class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
+                        <option value="expense">Khoản chi</option>
+                        <option value="income">Khoản thu</option>
+                    </select>
+                </label>
+                <label class="block text-xs font-semibold text-gray-500 mb-3">
+                    Danh mục
+                    <select id="transactionEditorCategory" onchange="syncTransactionEditorIcon()" class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800"></select>
+                </label>
+                <label class="block text-xs font-semibold text-gray-500">
+                    Icon
+                    <input id="transactionEditorIcon" type="hidden" value="tag">
+                </label>
+                <div id="transactionIconOptions" class="grid grid-cols-4 gap-2 mt-2 max-h-44 overflow-y-auto"></div>
+                <div class="flex gap-2 mt-5">
+                    <button type="button" onclick="closeTransactionEditor()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold active-scale">Hủy</button>
                     <button type="submit" class="flex-1 py-3 bg-brand-600 text-white rounded-lg font-bold active-scale">Lưu</button>
                 </div>
             </form>
@@ -357,8 +398,42 @@
             { value: 'tag', label: 'Khác' }
         ];
 
+        const CATEGORY_COLOR_PALETTE = [
+            'bg-amber-50 text-amber-600',
+            'bg-orange-50 text-orange-600',
+            'bg-pink-50 text-pink-600',
+            'bg-fuchsia-50 text-fuchsia-600',
+            'bg-purple-50 text-purple-600',
+            'bg-blue-50 text-blue-600',
+            'bg-cyan-50 text-cyan-600',
+            'bg-teal-50 text-teal-600',
+            'bg-green-50 text-green-600',
+            'bg-lime-50 text-lime-600',
+            'bg-red-50 text-red-600',
+            'bg-indigo-50 text-indigo-600',
+            'bg-emerald-50 text-emerald-600'
+        ];
+
+        function getRandomCategoryColor() {
+            return CATEGORY_COLOR_PALETTE[Math.floor(Math.random() * CATEGORY_COLOR_PALETTE.length)];
+        }
+
+        function getCategoryEditorIconColors(category = null) {
+            const shuffledColors = [...CATEGORY_COLOR_PALETTE].sort(() => Math.random() - 0.5);
+            const iconColors = {};
+            CATEGORY_ICONS.forEach((icon, index) => {
+                iconColors[icon.value] = shuffledColors[index % shuffledColors.length];
+            });
+            if (category && category.icon && category.color) {
+                iconColors[category.icon] = category.color;
+            }
+            return iconColors;
+        }
+
         let txType = 'expense';
         let currentAmountStr = "0";
+        let categoryEditorIconColors = {};
+        let transactionEditorIconColors = {};
         let transactions = JSON.parse(localStorage.getItem('sm_txs_v2')) || [];
         let categories = JSON.parse(localStorage.getItem('sm_cats_v2')) || DEFAULT_CATEGORIES;
         
@@ -413,21 +488,19 @@
             txType = type;
             const btnExp = document.getElementById('btnExpense');
             const btnInc = document.getElementById('btnIncome');
-            const sign = document.getElementById('displaySign');
+            const amount = document.getElementById('displayAmount');
             const catLabel = document.getElementById('catTypeLabel');
 
             if (type === 'expense') {
                 btnExp.className = "px-3 py-1.5 text-xs font-bold bg-white text-rose-500 shadow-sm rounded-md transition-all";
                 btnInc.className = "px-3 py-1.5 text-xs font-bold text-gray-400 rounded-md transition-all";
-                sign.textContent = "-";
-                sign.className = "text-3xl font-bold text-rose-500";
+                amount.className = "text-5xl font-black tracking-tighter text-rose-500 transition-transform duration-100";
                 catLabel.textContent = "Khoản Chi";
                 catLabel.className = "text-rose-500 font-bold";
             } else {
                 btnInc.className = "px-3 py-1.5 text-xs font-bold bg-white text-brand-500 shadow-sm rounded-md transition-all";
                 btnExp.className = "px-3 py-1.5 text-xs font-bold text-gray-400 rounded-md transition-all";
-                sign.textContent = "+";
-                sign.className = "text-3xl font-bold text-brand-500";
+                amount.className = "text-5xl font-black tracking-tighter text-brand-500 transition-transform duration-100";
                 catLabel.textContent = "Khoản Thu";
                 catLabel.className = "text-brand-500 font-bold";
             }
@@ -555,6 +628,50 @@
             link.remove();
             URL.revokeObjectURL(url);
             showToast('Đã xuất file JSON');
+        }
+
+        function importDataJson(event) {
+            const file = event.target.files[0];
+            event.target.value = '';
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const backup = JSON.parse(reader.result);
+                    const hasValidCategories = Array.isArray(backup.categories) && backup.categories.every(category =>
+                        category && typeof category.id === 'string' && typeof category.label === 'string' &&
+                        typeof category.icon === 'string' && typeof category.color === 'string' &&
+                        (category.type === 'income' || category.type === 'expense')
+                    );
+                    const hasValidTransactions = Array.isArray(backup.transactions) && backup.transactions.every(transaction =>
+                        transaction && typeof transaction.id === 'string' && typeof transaction.category === 'string' &&
+                        typeof transaction.icon === 'string' && typeof transaction.color === 'string' &&
+                        (transaction.type === 'income' || transaction.type === 'expense') &&
+                        Number.isFinite(transaction.amount) && transaction.amount >= 0 &&
+                        Number.isFinite(transaction.timestamp)
+                    );
+
+                    if (backup.version !== 2 || !hasValidCategories || !hasValidTransactions) {
+                        throw new Error('invalid backup');
+                    }
+                    if (!confirm('Nhập dữ liệu sẽ thay thế giao dịch và danh mục hiện tại. Bạn có muốn tiếp tục?')) return;
+
+                    transactions = backup.transactions;
+                    categories = backup.categories;
+                    localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
+                    localStorage.setItem('sm_cats_v2', JSON.stringify(categories));
+                    updateDashboard();
+                    renderChips();
+                    renderCategorySettings();
+                    showToast('Đã nhập dữ liệu từ file JSON');
+                } catch (error) {
+                    console.error('JSON import failed:', error);
+                    showToast('File JSON không hợp lệ', true);
+                }
+            };
+            reader.onerror = () => showToast('Không thể đọc file JSON', true);
+            reader.readAsText(file);
         }
 
         function getAccessSettings() {
@@ -887,9 +1004,14 @@
         function openCategoryEditor(category = null) {
             document.getElementById('categoryEditorTitle').textContent = category ? 'Sửa danh mục' : 'Thêm danh mục';
             document.getElementById('categoryEditorId').value = category ? category.id : '';
+            document.getElementById('categoryEditorColor').value = category ? category.color : getRandomCategoryColor();
             document.getElementById('categoryEditorLabel').value = category ? category.label : '';
             document.getElementById('categoryEditorType').value = category ? category.type : 'expense';
             document.getElementById('categoryEditorIcon').value = category && CATEGORY_ICONS.some(icon => icon.value === category.icon) ? category.icon : 'tag';
+            categoryEditorIconColors = getCategoryEditorIconColors(category);
+            if (!category) {
+                document.getElementById('categoryEditorColor').value = categoryEditorIconColors[document.getElementById('categoryEditorIcon').value];
+            }
             renderCategoryIconOptions();
             document.getElementById('categoryEditor').classList.remove('hidden');
             document.getElementById('categoryEditorLabel').focus();
@@ -900,14 +1022,10 @@
         }
 
         function renderCategoryIconOptions() {
-            const type = document.getElementById('categoryEditorType').value;
             const selectedIcon = document.getElementById('categoryEditorIcon').value;
             const list = document.getElementById('categoryIconOptions');
-            const iconColor = type === 'income'
-                ? 'bg-green-50 text-green-600 border-green-200'
-                : 'bg-rose-50 text-rose-600 border-rose-200';
             list.innerHTML = CATEGORY_ICONS.map(icon => `
-                <button type="button" onclick="selectCategoryIcon('${icon.value}')" class="category-icon-option ${iconColor} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border rounded-xl p-2 flex flex-col items-center justify-center gap-1 min-h-[68px] active-scale" title="${icon.label}">
+                <button type="button" onclick="selectCategoryIcon('${icon.value}')" class="category-icon-option ${categoryEditorIconColors[icon.value]} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border border-current rounded-xl p-2 flex flex-col items-center justify-center gap-1 min-h-[68px] active-scale" title="${icon.label}">
                     <i data-lucide="${icon.value}" class="w-5 h-5"></i>
                     <span class="text-[9px] font-semibold leading-tight text-center">${icon.label}</span>
                 </button>
@@ -917,6 +1035,7 @@
 
         function selectCategoryIcon(icon) {
             document.getElementById('categoryEditorIcon').value = icon;
+            document.getElementById('categoryEditorColor').value = categoryEditorIconColors[icon];
             renderCategoryIconOptions();
         }
 
@@ -928,7 +1047,7 @@
             const icon = document.getElementById('categoryEditorIcon').value;
             if (!label) return;
 
-            const color = type === 'income' ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-700';
+            const color = document.getElementById('categoryEditorColor').value || getRandomCategoryColor();
             const existing = categories.find(item => item.id === id);
             if (existing) {
                 const oldLabel = existing.label;
@@ -970,31 +1089,96 @@
         function editTransaction(txId) {
             const tx = transactions.find(item => item.id === txId);
             if (!tx) return;
+            const category = categories.find(item => item.label === tx.category && item.type === tx.type);
 
-            const amountInput = prompt('Số tiền mới:', tx.amount.toString());
-            if (amountInput === null) return;
-            const amount = parseInt(amountInput.replace(/\D/g, ''), 10);
-            if (!amount || amount > MAX_AMOUNT) {
-                showToast('Số tiền không hợp lệ', true);
+            document.getElementById('transactionEditorId').value = tx.id;
+            document.getElementById('transactionEditorAmount').value = tx.amount;
+            document.getElementById('transactionEditorDate').value = toDateInputValue(new Date(tx.timestamp));
+            document.getElementById('transactionEditorType').value = tx.type;
+            transactionEditorIconColors = getCategoryEditorIconColors(category);
+            renderTransactionCategoryOptions(tx.category);
+            document.getElementById('transactionEditor').classList.remove('hidden');
+        }
+
+        function closeTransactionEditor() {
+            document.getElementById('transactionEditor').classList.add('hidden');
+        }
+
+        function renderTransactionCategoryOptions(selectedLabel = '') {
+            const type = document.getElementById('transactionEditorType').value;
+            const categorySelect = document.getElementById('transactionEditorCategory');
+            const availableCategories = categories.filter(category => category.type === type);
+            categorySelect.innerHTML = availableCategories.map(category =>
+                `<option value="${category.id}">${category.label}</option>`
+            ).join('');
+
+            const selectedCategory = availableCategories.find(category => category.label === selectedLabel) || availableCategories[0];
+            if (!selectedCategory) {
+                categorySelect.innerHTML = '<option value="">Chưa có danh mục</option>';
+                document.getElementById('transactionEditorIcon').value = 'tag';
+            } else {
+                categorySelect.value = selectedCategory.id;
+                transactionEditorIconColors = getCategoryEditorIconColors(selectedCategory);
+                document.getElementById('transactionEditorIcon').value = selectedCategory.icon;
+            }
+            renderTransactionIconOptions();
+        }
+
+        function syncTransactionEditorIcon() {
+            const category = categories.find(item => item.id === document.getElementById('transactionEditorCategory').value);
+            if (!category) return;
+            transactionEditorIconColors = getCategoryEditorIconColors(category);
+            document.getElementById('transactionEditorIcon').value = category.icon;
+            renderTransactionIconOptions();
+        }
+
+        function renderTransactionIconOptions() {
+            const selectedIcon = document.getElementById('transactionEditorIcon').value;
+            const list = document.getElementById('transactionIconOptions');
+            list.innerHTML = CATEGORY_ICONS.map(icon => `
+                <button type="button" onclick="selectTransactionIcon('${icon.value}')" class="category-icon-option ${transactionEditorIconColors[icon.value] || 'bg-gray-50 text-gray-600'} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border border-current rounded-xl p-2 flex flex-col items-center justify-center gap-1 min-h-[62px] active-scale" title="${icon.label}">
+                    <i data-lucide="${icon.value}" class="w-5 h-5"></i>
+                    <span class="text-[9px] font-semibold leading-tight text-center">${icon.label}</span>
+                </button>
+            `).join('');
+            lucide.createIcons({ root: list });
+        }
+
+        function selectTransactionIcon(icon) {
+            document.getElementById('transactionEditorIcon').value = icon;
+            renderTransactionIconOptions();
+        }
+
+        function saveTransactionEditor(event) {
+            event.preventDefault();
+            const tx = transactions.find(item => item.id === document.getElementById('transactionEditorId').value);
+            const amount = Number(document.getElementById('transactionEditorAmount').value);
+            const date = document.getElementById('transactionEditorDate').value;
+            const type = document.getElementById('transactionEditorType').value;
+            const category = categories.find(item => item.id === document.getElementById('transactionEditorCategory').value);
+            const icon = document.getElementById('transactionEditorIcon').value;
+            const iconColor = transactionEditorIconColors[icon] || category?.color;
+            if (!tx || !Number.isInteger(amount) || amount < 1 || amount > MAX_AMOUNT || !date || !category || !icon) {
+                showToast('Thông tin giao dịch không hợp lệ', true);
                 return;
             }
 
-            const availableCategories = categories.filter(cat => cat.type === tx.type);
-            const categoryNames = availableCategories.map(cat => cat.label).join(', ');
-            const categoryInput = prompt(`Danh mục mới (${categoryNames}):`, tx.category);
-            if (categoryInput === null) return;
-            const category = availableCategories.find(cat => cat.label.toLowerCase() === categoryInput.trim().toLowerCase());
-            if (!category) {
-                showToast('Danh mục không hợp lệ', true);
+            const oldDate = new Date(tx.timestamp);
+            const timestamp = new Date(`${date}T${String(oldDate.getHours()).padStart(2, '0')}:${String(oldDate.getMinutes()).padStart(2, '0')}:${String(oldDate.getSeconds()).padStart(2, '0')}`).getTime();
+            if (!Number.isFinite(timestamp)) {
+                showToast('Ngày giao dịch không hợp lệ', true);
                 return;
             }
 
             tx.amount = amount;
+            tx.type = type;
             tx.category = category.label;
-            tx.icon = category.icon;
-            tx.color = category.color;
+            tx.icon = icon;
+            tx.color = iconColor;
+            tx.timestamp = timestamp;
             localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
             updateDashboard();
+            closeTransactionEditor();
             showToast('Đã cập nhật giao dịch');
         }
 
