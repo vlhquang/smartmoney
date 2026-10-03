@@ -99,6 +99,16 @@
         .date-filter > summary::-webkit-details-marker { display: none; }
         .date-filter > summary > span { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
         .date-filter[open] > summary .filter-chevron { transform: rotate(180deg); }
+        .settings-section { background: white; border-bottom: 1px solid #e5e7eb; }
+        .settings-section > summary { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px; list-style: none; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .settings-section > summary::-webkit-details-marker { display: none; }
+        .settings-section > summary span { flex: 1; }
+        .settings-section[open] > summary > i:last-child { transform: rotate(180deg); }
+        #historyList { padding: 0 16px 16px; }
+        .history-day { padding: 16px 0 8px; font-size: 12px; font-weight: 600; color: #6b7280; }
+        .history-row { width: 100%; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; padding: 14px 0; border-bottom: 1px solid #e5e7eb; background: transparent; }
+        .history-row > span:last-child { max-width: 140px; overflow-wrap: anywhere; text-align: right; font-size: 14px; }
+        .category-bar { height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; margin-top: 8px; }
         @media (max-width: 480px) {
             .app-shell { box-shadow: none; }
             #categoryEditor, #transactionEditor { align-items: flex-end; padding: 0; }
@@ -210,7 +220,8 @@
                     </div>
                     <p id="historyDateError" role="alert" class="hidden text-xs text-rose-600 mt-2">Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.</p>
                 </details>
-                <div id="historyList" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
+                <div id="historyTotals" class="px-4 py-2 text-xs border-b border-gray-100 bg-white"></div>
+                <div id="historyList" class="flex-1 overflow-y-auto bg-white"></div>
             </div>
 
             <!-- TAB 3: CHART -->
@@ -231,7 +242,11 @@
                         </div>
                         </details>
                         <p id="chartRangeSummary" class="text-xs text-gray-500 mb-2"></p>
+                        <div id="categoryBars" class="space-y-4 py-3"></div>
+                        <details class="date-filter mt-3" ontoggle="if (this.open) renderChart()">
+                        <summary><i data-lucide="chart-pie" class="w-4 h-4"></i><span>Thu / Chi</span><i data-lucide="chevron-down" class="w-4 h-4"></i></summary>
                         <canvas id="expenseChart" width="400" height="400"></canvas>
+                        </details>
                     </div>
                     <div class="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="p-4 border-b border-gray-100 flex justify-between items-center">
@@ -245,7 +260,7 @@
 
             <!-- TAB 4: SETTINGS -->
             <div id="tab-settings" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
-                <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                <div class="flex-1 overflow-y-auto bg-gray-50">
                     <form onsubmit="saveHistoryCycleSettings(event)" class="bg-white p-4 border-b border-gray-100">
                         <h3 class="font-bold text-gray-900 mb-3">Chu kỳ mặc định</h3>
                         <div class="grid grid-cols-2 gap-3">
@@ -440,6 +455,7 @@
                     <button type="button" onclick="closeTransactionEditor()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold active-scale">Hủy</button>
                     <button type="submit" class="flex-1 py-3 bg-brand-600 text-white rounded-lg font-bold active-scale">Lưu</button>
                 </div>
+                <button type="button" onclick="deleteTransaction(document.getElementById('transactionEditorId').value)" class="w-full min-h-[44px] mt-2 text-sm font-semibold text-rose-600">Xóa giao dịch</button>
             </form>
         </div>
 
@@ -561,6 +577,7 @@
         let syncTimer = null;
 
         window.addEventListener('DOMContentLoaded', () => {
+            setupSettingsSections();
             if(!localStorage.getItem('sm_cats_v2')) {
                 localStorage.setItem('sm_cats_v2', JSON.stringify(DEFAULT_CATEGORIES));
             }
@@ -1132,6 +1149,21 @@
             document.getElementById(`${prefix}DateSummary`).textContent = from && to ? `${format(from)} – ${format(to)}` : from ? `Từ ${format(from)}` : to ? `Đến ${format(to)}` : 'Tất cả ngày';
         }
 
+        function setupSettingsSections() {
+            const icons = ['calendar-range', 'download', 'lock', 'refresh-cw', 'tags'];
+            document.querySelectorAll('#tab-settings > div > form, #tab-settings > div > div').forEach(panel => {
+                const heading = panel.querySelector('h3');
+                if (!heading) return;
+                const section = document.createElement('details');
+                section.className = 'settings-section';
+                const summary = document.createElement('summary');
+                summary.innerHTML = `<i data-lucide="${icons.shift() || 'settings'}" class="w-5 h-5 text-gray-500"></i><span>${escapeHtml(heading.textContent)}</span><i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>`;
+                panel.before(section);
+                section.append(summary, panel);
+                heading.classList.add('hidden');
+            });
+        }
+
         function renderHistory() {
             updateDateFilterSummary('history');
             const list = document.getElementById('historyList');
@@ -1141,12 +1173,16 @@
             document.getElementById('historyDateError').classList.toggle('hidden', !invalidRange);
             if (invalidRange) {
                 list.innerHTML = '';
+                document.getElementById('historyTotals').textContent = '';
                 return;
             }
             const filteredTransactions = transactions.filter(t => {
                 const day = toDateInputValue(new Date(t.timestamp));
                 return (historyFilter === 'all' || t.type === historyFilter) && (!from || day >= from) && (!to || day <= to);
-            });
+            }).sort((a, b) => b.timestamp - a.timestamp);
+            const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            document.getElementById('historyTotals').innerHTML = `<span class="text-emerald-600">Thu +${formatNumber(income)} đ</span><span class="text-rose-600 ml-3">Chi -${formatNumber(expense)} đ</span>`;
             if (filteredTransactions.length === 0) {
                 list.innerHTML = `<div class="text-center text-gray-400 mt-20 flex flex-col items-center">
                     <i data-lucide="inbox" class="w-12 h-12 mb-3 text-gray-300"></i>
@@ -1156,33 +1192,25 @@
                 return;
             }
             
+            let previousDay = '';
             list.innerHTML = filteredTransactions.map(t => {
                 const isInc = t.type === 'income';
-                const time = new Date(t.timestamp).toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'});
+                const day = toDateInputValue(new Date(t.timestamp));
+                const heading = day !== previousDay ? `<h3 class="history-day">${formatDateForDisplay(t.timestamp)}</h3>` : '';
+                previousDay = day;
+                const time = new Date(t.timestamp).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
                 return `
-                    <div class="flex flex-wrap gap-2 justify-between items-center bg-white p-3.5 rounded-lg shadow-sm border border-gray-100">
-                        <div class="flex items-center gap-3 min-w-0 flex-1 basis-40">
-                            <div class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${getTransactionColor(t.type)}">
+                    ${heading}<button type="button" onclick="editTransaction('${t.id}')" class="history-row active-scale">
+                            <span class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${getTransactionColor(t.type)}">
                                 <i data-lucide="${t.icon}" class="w-5 h-5"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="font-bold text-sm text-gray-900">${t.category}</p>
-                                <p class="text-[10px] text-gray-500">${time}</p>
-                                ${t.note ? `<p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap break-words">${escapeHtml(t.note)}</p>` : ''}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-base ${isInc ? 'text-brand-600' : 'text-rose-600'}">
-                                ${isInc ? '+' : '-'}${formatNumber(t.amount)}
                             </span>
-                            <button onclick="editTransaction('${t.id}')" aria-label="Sửa giao dịch" class="p-2 text-gray-400 active-scale">
-                                <i data-lucide="pencil" class="w-4 h-4"></i>
-                            </button>
-                            <button onclick="deleteTransaction('${t.id}')" aria-label="Xóa giao dịch" class="p-2 text-rose-400 active-scale">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </div>
+                            <span class="min-w-0">
+                                <span class="block font-semibold text-sm text-gray-900 break-words">${escapeHtml(t.category)}</span>
+                                <span class="block text-[11px] text-gray-500">${time}</span>
+                                ${t.note ? `<span class="block text-xs text-gray-500 mt-1 whitespace-pre-wrap break-words">${escapeHtml(t.note)}</span>` : ''}
+                            </span>
+                            <span class="font-bold ${isInc ? 'text-brand-600' : 'text-rose-600'}">${isInc ? '+' : '-'}${formatNumber(t.amount)} đ</span>
+                    </button>
                 `;
             }).join('');
             lucide.createIcons();
@@ -1397,6 +1425,7 @@
             transactions = transactions.filter(item => item.id !== txId);
             localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
             updateDashboard();
+            closeTransactionEditor();
             showToast('Đã xóa giao dịch');
         }
 
@@ -1427,7 +1456,14 @@
             const totalExpense = Object.values(expenseData).reduce((sum, amount) => sum + amount, 0);
 
             document.getElementById('chartRangeSummary').textContent =
-                `Thu: +${formatNumber(totalIncome)} đ | Chi: -${formatNumber(totalExpense)} đ`;
+                `Thu: +${formatNumber(totalIncome)} đ · Chi: -${formatNumber(totalExpense)} đ · Chênh lệch: ${formatNumber(totalIncome - totalExpense)} đ`;
+            document.getElementById('categoryBars').innerHTML = [
+                { label: 'Chi', data: expenseData, total: totalExpense, color: '#f43f5e' },
+                { label: 'Thu', data: incomeData, total: totalIncome, color: '#10b981' }
+            ].map(group => {
+                const entries = Object.entries(group.data).sort((a, b) => b[1] - a[1]);
+                return entries.length ? `<h3 class="text-xs font-bold text-gray-500">${group.label}</h3>` + entries.map(([label, amount]) => `<div><div class="flex justify-between gap-3 text-sm"><span class="min-w-0 break-words">${escapeHtml(label)}</span><span class="shrink-0 font-semibold">${formatNumber(amount)} đ</span></div><div class="category-bar"><div style="height:100%;width:${group.total ? amount / group.total * 100 : 0}%;background:${group.color}"></div></div></div>`).join('') : '';
+            }).join('');
 
             if (totalIncome === 0 && totalExpense === 0) {
                 ctx.clearRect(0, 0, 400, 400);
