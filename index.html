@@ -2,7 +2,8 @@
 <html lang="vi" class="h-full antialiased">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#ffffff">
     <title>SmartMoney Fast-Entry</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,11 +50,83 @@
         /* Hide tabs by default, handle via JS */
         .tab-content { display: none; }
         .tab-content.active { display: flex; }
+
+        :root { --nav-height: calc(64px + env(safe-area-inset-bottom, 0px)); }
+        button, input, select { touch-action: manipulation; }
+        input, select, textarea { min-width: 0; font-size: 16px !important; min-height: 44px; user-select: text; }
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid #059669; outline-offset: 3px;
+        }
+        .app-shell { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+        .app-shell > header { height: auto; min-height: calc(64px + env(safe-area-inset-top, 0px)); gap: 12px; }
+        .app-shell > header > div:first-child { min-width: 0; }
+        #headerTotal { overflow-wrap: anywhere; letter-spacing: 0; }
+        #btnExpense, #btnIncome { min-width: 56px; min-height: 44px; font-size: 14px; }
+        .tab-content { padding-bottom: var(--nav-height); }
+        .app-shell > nav { height: var(--nav-height); }
+        .nav-btn { min-height: 56px; gap: 2px; }
+        .nav-btn span { font-size: 11px; }
+        #tab-home > div:first-child { height: 88px; padding: 12px 16px; }
+        #tab-home > div:first-child > div { width: 100%; justify-content: center; min-width: 0; }
+        #displayAmount { font-size: 40px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+        #chipsGrid { gap: 8px; }
+        #chipsGrid > button { height: 96px; padding: 8px; border-radius: 8px; }
+        #chipsGrid > button > div { flex-shrink: 0; width: 40px; height: 40px; }
+        #chipsGrid > button > span { font-size: 12px; overflow-wrap: anywhere; }
+        .numpad-btn { border-radius: 8px; }
+        #tab-history > div:last-child, #tab-settings > div:last-child { min-height: 0; }
+        #tab-settings button { min-height: 44px; }
+        #categorySettingsList button { min-width: 44px; min-height: 44px; }
+        #categorySettingsList > div > div:first-child { flex-shrink: 0; }
+        #tab-settings > div:last-child > div { border-radius: 0; box-shadow: none; border-width: 0 0 1px; }
+        #tab-settings > div:last-child > div:first-child > div { flex-wrap: wrap; gap: 12px; }
+        #tab-chart > div:last-child > div { border-radius: 0; box-shadow: none; border-width: 0 0 1px; }
+        #tab-chart h3 { min-width: 0; font-size: 14px; }
+        #chartTransactionList { max-height: none; overflow: visible; }
+        #toast { top: calc(12px + env(safe-area-inset-top, 0px)); }
+        #toastMsg { white-space: normal; overflow-wrap: anywhere; }
+        #categoryEditor, #transactionEditor, #accessGate { overflow-y: auto; }
+        #categoryEditor > form, #transactionEditor > form, #accessGate > form {
+            max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain;
+        }
+        #categoryIconOptions, #transactionIconOptions {
+            grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;
+            padding: 5px; max-height: 224px; overscroll-behavior: contain;
+        }
+        .category-icon-option { min-width: 0; height: 52px; }
+        .sheet-content { max-height: 85dvh; overflow-y: auto; overscroll-behavior: contain; }
+        .date-filter > summary { list-style: none; min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .date-filter > summary::-webkit-details-marker { display: none; }
+        .date-filter > summary > span { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+        .date-filter[open] > summary .filter-chevron { transform: rotate(180deg); }
+        @media (max-width: 480px) {
+            .app-shell { box-shadow: none; }
+            #categoryEditor, #transactionEditor { align-items: flex-end; padding: 0; }
+            #categoryEditor > form, #transactionEditor > form {
+                max-width: none; max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+                border-radius: 16px 16px 0 0; padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            }
+            #categoryEditor > form > div:last-child, #transactionEditor > form > div:last-child {
+                position: sticky; bottom: 0; background: white; padding-top: 12px; margin-top: 12px;
+            }
+            #tab-home > div:nth-child(2) { padding: 12px; }
+            #tab-settings > div:last-child { padding: 0 0 16px; }
+            #transactionEditor > form > .grid { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-height: 700px) {
+            #tab-home > div:first-child { height: 68px; }
+            #displayAmount { font-size: 32px; }
+            #tab-home > div:last-child { padding-top: 8px; padding-bottom: 8px; }
+            .numpad-btn.h-14 { height: 44px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
     </style>
 </head>
 
 <body class="flex justify-center items-center">
-    <div class="w-full max-w-md h-[100dvh] bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
+    <div class="app-shell w-full max-w-md h-[100dvh] bg-gray-50 flex flex-col relative shadow-2xl overflow-hidden">
         
         <!-- HEADER (Cố định, dùng chung cho mọi Tab) -->
         <header class="shrink-0 pt-[env(safe-area-inset-top,0px)] bg-white border-b border-gray-100 flex justify-between items-center px-4 h-16 z-20">
@@ -62,7 +135,8 @@
                 <span id="headerTotal" class="text-lg font-bold text-gray-900 tracking-tight">0 đ</span>
             </div>
             <!-- Type Toggle (Chỉ hiện ở màn Home, nhưng ta để cố định cũng tiện) -->
-            <div class="flex bg-gray-100 p-1 rounded-lg">
+            <div id="typeFilter" class="flex bg-gray-100 p-1 rounded-lg" role="group" aria-label="Loại giao dịch">
+                <button id="btnAll" onclick="setHistoryFilter('all')" class="hidden px-3 py-1.5 text-sm font-bold text-gray-400 rounded-md min-h-[44px]">Tất cả</button>
                 <button id="btnExpense" onclick="setType('expense')" class="px-3 py-1.5 text-xs font-bold bg-white text-rose-500 shadow-sm rounded-md transition-all">Chi</button>
                 <button id="btnIncome" onclick="setType('income')" class="px-3 py-1.5 text-xs font-bold text-gray-400 rounded-md transition-all">Thu</button>
             </div>
@@ -118,20 +192,34 @@
 
             <!-- TAB 2: HISTORY -->
             <div id="tab-history" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center shrink-0">
-                    <h2 class="font-bold text-lg">Lịch sử giao dịch</h2>
-                </div>
+                <details class="date-filter shrink-0 px-4 py-1 border-b border-gray-100 bg-white">
+                    <summary><i data-lucide="calendar-days" class="w-4 h-4 text-gray-500"></i><span id="historyDateSummary">Tất cả ngày</span><i data-lucide="chevron-down" class="filter-chevron w-4 h-4 text-gray-400"></i></summary>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-xs font-semibold text-gray-500 min-w-0">Từ ngày
+                            <input id="historyDateFrom" type="date" onchange="renderHistory()" class="mt-1 w-full min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </label>
+                        <label class="text-xs font-semibold text-gray-500 min-w-0">Đến ngày
+                            <input id="historyDateTo" type="date" onchange="renderHistory()" class="mt-1 w-full min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2 mt-2">
+                        <button onclick="setHistoryCycle(-1)" aria-label="Chu kỳ trước" title="Chu kỳ trước" class="w-11 h-11 shrink-0 flex items-center justify-center bg-gray-100 rounded-lg"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                        <button id="historyCycleButton" onclick="setHistoryCycle()" class="flex-1 min-h-[44px] text-sm font-semibold bg-brand-50 text-brand-600 rounded-lg">Chu kỳ 25 → 20</button>
+                        <button onclick="setHistoryCycle(1)" aria-label="Chu kỳ sau" title="Chu kỳ sau" class="w-11 h-11 shrink-0 flex items-center justify-center bg-gray-100 rounded-lg"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                        <button onclick="clearHistoryDates()" aria-label="Bỏ lọc ngày" title="Bỏ lọc ngày" class="w-11 h-11 shrink-0 flex items-center justify-center bg-gray-100 rounded-lg"><i data-lucide="filter-x" class="w-5 h-5"></i></button>
+                    </div>
+                    <p id="historyDateError" role="alert" class="hidden text-xs text-rose-600 mt-2">Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.</p>
+                </details>
                 <div id="historyList" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
             </div>
 
             <!-- TAB 3: CHART -->
             <div id="tab-chart" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
-                <div class="p-4 border-b border-gray-100 shrink-0">
-                        <h2 class="font-bold text-lg">Thống kê Thu Chi</h2>
-                </div>
                 <div class="flex-1 min-h-0 overflow-y-auto p-4 bg-gray-50">
                     <div class="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
-                        <div class="grid grid-cols-2 gap-3 mb-4">
+                        <details class="date-filter border-b border-gray-100 mb-3">
+                            <summary><i data-lucide="calendar-days" class="w-4 h-4 text-gray-500"></i><span id="chartDateSummary">Khoảng ngày</span><i data-lucide="chevron-down" class="filter-chevron w-4 h-4 text-gray-400"></i></summary>
+                        <div class="grid grid-cols-2 gap-3 pb-3">
                             <label class="text-xs font-semibold text-gray-500">
                                 Từ ngày
                                 <input id="chartDateFrom" type="date" onchange="renderChart()" class="mt-1 w-full min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
@@ -141,6 +229,7 @@
                                 <input id="chartDateTo" type="date" onchange="renderChart()" class="mt-1 w-full min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800">
                             </label>
                         </div>
+                        </details>
                         <p id="chartRangeSummary" class="text-xs text-gray-500 mb-2"></p>
                         <canvas id="expenseChart" width="400" height="400"></canvas>
                     </div>
@@ -156,10 +245,19 @@
 
             <!-- TAB 4: SETTINGS -->
             <div id="tab-settings" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
-                <div class="p-4 border-b border-gray-100 shrink-0">
-                    <h2 class="font-bold text-lg">Cài đặt</h2>
-                </div>
                 <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                    <form onsubmit="saveHistoryCycleSettings(event)" class="bg-white p-4 border-b border-gray-100">
+                        <h3 class="font-bold text-gray-900 mb-3">Chu kỳ mặc định</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="text-xs font-semibold text-gray-500">Ngày bắt đầu
+                                <input id="cycleStartDay" type="number" inputmode="numeric" min="1" max="31" step="1" required class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                            </label>
+                            <label class="text-xs font-semibold text-gray-500">Ngày kết thúc
+                                <input id="cycleEndDay" type="number" inputmode="numeric" min="1" max="31" step="1" required class="mt-1 w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                            </label>
+                        </div>
+                        <button type="submit" class="w-full mt-3 min-h-[44px] bg-brand-50 text-brand-600 rounded-lg text-sm font-bold">Lưu chu kỳ</button>
+                    </form>
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                         <div class="flex justify-between items-center mb-3">
                             <div>
@@ -312,6 +410,10 @@
             <form onsubmit="saveTransactionEditor(event)" class="w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl max-h-[90dvh] overflow-y-auto">
                 <h2 class="text-lg font-bold text-gray-900 mb-4">Sửa giao dịch</h2>
                 <input id="transactionEditorId" type="hidden">
+                <label class="block text-xs font-semibold text-gray-500 mb-3">
+                    Ghi chú
+                    <textarea id="transactionEditorNote" rows="2" maxlength="500" class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 resize-y" placeholder="Ghi chú giao dịch"></textarea>
+                </label>
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <label class="block text-xs font-semibold text-gray-500">
                         Số tiền
@@ -333,11 +435,7 @@
                     Danh mục
                     <select id="transactionEditorCategory" onchange="syncTransactionEditorIcon()" class="mt-1 w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800"></select>
                 </label>
-                <label class="block text-xs font-semibold text-gray-500">
-                    Icon
-                    <input id="transactionEditorIcon" type="hidden" value="tag">
-                </label>
-                <div id="transactionIconOptions" class="grid grid-cols-4 gap-2 mt-2 max-h-44 overflow-y-auto"></div>
+                <div id="transactionCategoryPreview" class="flex items-center gap-2 text-sm text-gray-600"></div>
                 <div class="flex gap-2 mt-5">
                     <button type="button" onclick="closeTransactionEditor()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold active-scale">Hủy</button>
                     <button type="submit" class="flex-1 py-3 bg-brand-600 text-white rounded-lg font-bold active-scale">Lưu</button>
@@ -395,45 +493,59 @@
             { value: 'heart-pulse', label: 'Sức khỏe' },
             { value: 'wallet', label: 'Tiền lương' },
             { value: 'trending-up', label: 'Đầu tư' },
+            { value: 'banknote-arrow-up', label: 'Thu tiền' },
+            { value: 'banknote-arrow-down', label: 'Chi tiền' },
+            { value: 'banknote', label: 'Tiền mặt' },
+            { value: 'coins', label: 'Tiền / Phí' },
+            { value: 'hand-coins', label: 'Vay / Trả nợ' },
+            { value: 'credit-card', label: 'Thanh toán thẻ' },
+            { value: 'wallet-cards', label: 'Ví điện tử' },
+            { value: 'arrow-left-right', label: 'Chuyển tiền' },
+            { value: 'receipt', label: 'Hóa đơn' },
+            { value: 'receipt-text', label: 'Biên lai' },
+            { value: 'piggy-bank', label: 'Tiết kiệm' },
+            { value: 'landmark', label: 'Ngân hàng' },
+            { value: 'briefcase-business', label: 'Công việc' },
+            { value: 'gift', label: 'Quà tặng' },
+            { value: 'heart-handshake', label: 'Quyên góp' },
+            { value: 'graduation-cap', label: 'Học phí' },
+            { value: 'book-open', label: 'Sách / Học tập' },
+            { value: 'baby', label: 'Con cái' },
+            { value: 'paw-print', label: 'Thú cưng' },
+            { value: 'fuel', label: 'Xăng xe' },
+            { value: 'bus', label: 'Xe buýt' },
+            { value: 'plane', label: 'Vé máy bay' },
+            { value: 'hotel', label: 'Khách sạn' },
+            { value: 'palm-tree', label: 'Du lịch' },
+            { value: 'wrench', label: 'Sửa chữa' },
+            { value: 'drumstick', label: 'Đồ ăn nhanh' },
+            { value: 'zap', label: 'Tiền điện' },
+            { value: 'droplets', label: 'Tiền nước' },
+            { value: 'wifi', label: 'Internet' },
+            { value: 'smartphone', label: 'Điện thoại' },
+            { value: 'shirt', label: 'Quần áo' },
+            { value: 'scissors', label: 'Làm đẹp' },
+            { value: 'dumbbell', label: 'Thể thao' },
+            { value: 'shield-check', label: 'Bảo hiểm' },
+            { value: 'chart-pie', label: 'Lãi đầu tư' },
+            { value: 'circle-plus', label: 'Thu nhập khác' },
             { value: 'tag', label: 'Khác' }
         ];
 
-        const CATEGORY_COLOR_PALETTE = [
-            'bg-amber-50 text-amber-600',
-            'bg-orange-50 text-orange-600',
-            'bg-pink-50 text-pink-600',
-            'bg-fuchsia-50 text-fuchsia-600',
-            'bg-purple-50 text-purple-600',
-            'bg-blue-50 text-blue-600',
-            'bg-cyan-50 text-cyan-600',
-            'bg-teal-50 text-teal-600',
-            'bg-green-50 text-green-600',
-            'bg-lime-50 text-lime-600',
-            'bg-red-50 text-red-600',
-            'bg-indigo-50 text-indigo-600',
-            'bg-emerald-50 text-emerald-600'
-        ];
-
-        function getRandomCategoryColor() {
-            return CATEGORY_COLOR_PALETTE[Math.floor(Math.random() * CATEGORY_COLOR_PALETTE.length)];
+        function getTransactionColor(type) {
+            return type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600';
         }
 
         function getCategoryEditorIconColors(category = null) {
-            const shuffledColors = [...CATEGORY_COLOR_PALETTE].sort(() => Math.random() - 0.5);
-            const iconColors = {};
-            CATEGORY_ICONS.forEach((icon, index) => {
-                iconColors[icon.value] = shuffledColors[index % shuffledColors.length];
-            });
-            if (category && category.icon && category.color) {
-                iconColors[category.icon] = category.color;
-            }
-            return iconColors;
+            return Object.fromEntries(CATEGORY_ICONS.map(icon => [icon.value, getTransactionColor(category?.type)]));
         }
 
         let txType = 'expense';
+        let historyFilter = 'all';
+        const HISTORY_CYCLE_KEY = 'sm_history_cycle_v1';
+        let historyCycle = loadHistoryCycle();
         let currentAmountStr = "0";
         let categoryEditorIconColors = {};
-        let transactionEditorIconColors = {};
         let transactions = JSON.parse(localStorage.getItem('sm_txs_v2')) || [];
         let categories = JSON.parse(localStorage.getItem('sm_cats_v2')) || DEFAULT_CATEGORIES;
         
@@ -453,6 +565,10 @@
                 localStorage.setItem('sm_cats_v2', JSON.stringify(DEFAULT_CATEGORIES));
             }
             setType('expense');
+            document.getElementById('cycleStartDay').value = historyCycle.startDay;
+            document.getElementById('cycleEndDay').value = historyCycle.endDay;
+            document.getElementById('historyCycleButton').textContent = `Chu kỳ ${historyCycle.startDay} → ${historyCycle.endDay}`;
+            setHistoryCycle();
             updateDashboard();
             loadAccessSettings();
             loadSyncSettings();
@@ -477,14 +593,22 @@
             navBtn.classList.remove('text-gray-400');
             navBtn.classList.add('text-brand-600');
 
+            document.getElementById('typeFilter').classList.toggle('hidden', tabId !== 'tab-home' && tabId !== 'tab-history');
+            document.getElementById('btnAll').classList.toggle('hidden', tabId !== 'tab-history');
+            if (tabId === 'tab-home') setType(txType);
+
             // Specific tab actions
             if (tabId === 'tab-chart') renderChart();
-            if (tabId === 'tab-history') renderHistory();
+            if (tabId === 'tab-history') setHistoryFilter(historyFilter);
             if (tabId === 'tab-settings') renderCategorySettings();
         }
 
         // Đổi Loại Giao Dịch
         function setType(type) {
+            if (document.getElementById('tab-history').classList.contains('active')) {
+                setHistoryFilter(type);
+                return;
+            }
             txType = type;
             const btnExp = document.getElementById('btnExpense');
             const btnInc = document.getElementById('btnIncome');
@@ -505,6 +629,7 @@
                 catLabel.className = "text-brand-500 font-bold";
             }
             renderChips();
+            fitAmountDisplay();
         }
 
         function formatNumber(num) {
@@ -515,7 +640,24 @@
             const num = parseInt(currentAmountStr, 10) || 0;
             const el = document.getElementById('displayAmount');
             el.textContent = formatNumber(num);
+            fitAmountDisplay();
         }
+
+        function fitAmountDisplay() {
+            requestAnimationFrame(() => {
+                const amount = document.getElementById('displayAmount');
+                amount.style.fontSize = '';
+                const row = amount.parentElement;
+                const currency = amount.nextElementSibling;
+                const available = row.clientWidth - currency.offsetWidth - 12;
+                const fontSize = parseFloat(getComputedStyle(amount).fontSize);
+                if (available > 0 && amount.scrollWidth > available) {
+                    amount.style.fontSize = `${fontSize * available / amount.scrollWidth}px`;
+                }
+            });
+        }
+
+        window.addEventListener('resize', fitAmountDisplay);
 
         // Bàn phím
         function pressKey(key) {
@@ -547,7 +689,7 @@
             
             grid.innerHTML = activeCats.map(c => `
                 <button onclick="handleCategoryClick('${c.id}')" class="active-scale flex flex-col items-center justify-center p-3 h-[104px] bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center mb-2 ${c.color}">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center mb-2 ${getTransactionColor(c.type)}">
                         <i data-lucide="${c.icon}" class="w-6 h-6"></i>
                     </div>
                     <span class="text-[11px] font-semibold text-gray-700 leading-tight line-clamp-2">${c.label}</span>
@@ -596,7 +738,7 @@
                 amount: amount,
                 category: cat.label,
                 icon: cat.icon,
-                color: cat.color,
+                color: getTransactionColor(txType),
                 type: cat.type,
                 timestamp: Date.now()
             };
@@ -919,29 +1061,114 @@
             if (document.getElementById('tab-chart').classList.contains('active')) renderChart();
         }
 
+        function setHistoryFilter(type) {
+            historyFilter = type;
+            const buttons = { all: 'btnAll', expense: 'btnExpense', income: 'btnIncome' };
+            Object.entries(buttons).forEach(([value, id]) => {
+                const button = document.getElementById(id);
+                const active = value === type;
+                const color = value === 'expense' ? 'text-rose-500' : value === 'income' ? 'text-brand-600' : 'text-gray-900';
+                button.className = `px-3 py-1.5 text-sm font-bold rounded-md min-h-[44px] transition-all ${active ? `bg-white shadow-sm ${color}` : 'text-gray-400'}`;
+                button.setAttribute('aria-pressed', String(active));
+            });
+            renderHistory();
+        }
+
+        function escapeHtml(value) {
+            const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(value).replace(/[&<>"']/g, character => entities[character]);
+        }
+
+        function loadHistoryCycle() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(HISTORY_CYCLE_KEY));
+                if (saved && [saved.startDay, saved.endDay].every(day => Number.isInteger(day) && day >= 1 && day <= 31)) return saved;
+            } catch {}
+            return { startDay: 25, endDay: 20 };
+        }
+
+        function saveHistoryCycleSettings(event) {
+            event.preventDefault();
+            const startDay = Number(document.getElementById('cycleStartDay').value);
+            const endDay = Number(document.getElementById('cycleEndDay').value);
+            if (![startDay, endDay].every(day => Number.isInteger(day) && day >= 1 && day <= 31)) {
+                showToast('Ngày trong chu kỳ phải từ 1 đến 31', true);
+                return;
+            }
+            historyCycle = { startDay, endDay };
+            localStorage.setItem(HISTORY_CYCLE_KEY, JSON.stringify(historyCycle));
+            document.getElementById('historyCycleButton').textContent = `Chu kỳ ${startDay} → ${endDay}`;
+            setHistoryCycle();
+            showToast('Đã lưu chu kỳ mặc định');
+        }
+
+        function getCycleDate(year, month, day) {
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            return new Date(year, month, Math.min(day, lastDay));
+        }
+
+        function setHistoryCycle(offset = 0) {
+            const from = document.getElementById('historyDateFrom');
+            const now = new Date();
+            const anchor = offset && from.value ? new Date(`${from.value}T12:00:00`) : now;
+            const startThisMonth = getCycleDate(anchor.getFullYear(), anchor.getMonth(), historyCycle.startDay);
+            const month = offset && from.value ? anchor.getMonth() : anchor.getMonth() - (anchor < startThisMonth ? 1 : 0);
+            const endMonthOffset = historyCycle.endDay < historyCycle.startDay ? 1 : 0;
+            from.value = toDateInputValue(getCycleDate(anchor.getFullYear(), month + offset, historyCycle.startDay));
+            document.getElementById('historyDateTo').value = toDateInputValue(getCycleDate(anchor.getFullYear(), month + offset + endMonthOffset, historyCycle.endDay));
+            renderHistory();
+        }
+
+        function clearHistoryDates() {
+            document.getElementById('historyDateFrom').value = '';
+            document.getElementById('historyDateTo').value = '';
+            renderHistory();
+        }
+
+        function updateDateFilterSummary(prefix) {
+            const from = document.getElementById(`${prefix}DateFrom`).value;
+            const to = document.getElementById(`${prefix}DateTo`).value;
+            const format = value => value.split('-').reverse().join('/');
+            document.getElementById(`${prefix}DateSummary`).textContent = from && to ? `${format(from)} – ${format(to)}` : from ? `Từ ${format(from)}` : to ? `Đến ${format(to)}` : 'Tất cả ngày';
+        }
+
         function renderHistory() {
+            updateDateFilterSummary('history');
             const list = document.getElementById('historyList');
-            if (transactions.length === 0) {
+            const from = document.getElementById('historyDateFrom').value;
+            const to = document.getElementById('historyDateTo').value;
+            const invalidRange = Boolean(from && to && from > to);
+            document.getElementById('historyDateError').classList.toggle('hidden', !invalidRange);
+            if (invalidRange) {
+                list.innerHTML = '';
+                return;
+            }
+            const filteredTransactions = transactions.filter(t => {
+                const day = toDateInputValue(new Date(t.timestamp));
+                return (historyFilter === 'all' || t.type === historyFilter) && (!from || day >= from) && (!to || day <= to);
+            });
+            if (filteredTransactions.length === 0) {
                 list.innerHTML = `<div class="text-center text-gray-400 mt-20 flex flex-col items-center">
                     <i data-lucide="inbox" class="w-12 h-12 mb-3 text-gray-300"></i>
-                    <p class="text-sm">Chưa có giao dịch</p>
+                    <p class="text-sm">${from || to ? 'Không có giao dịch phù hợp trong khoảng ngày đã chọn' : historyFilter === 'all' ? 'Chưa có giao dịch' : historyFilter === 'income' ? 'Chưa có khoản thu' : 'Chưa có khoản chi'}</p>
                 </div>`;
                 lucide.createIcons();
                 return;
             }
             
-            list.innerHTML = transactions.map(t => {
+            list.innerHTML = filteredTransactions.map(t => {
                 const isInc = t.type === 'income';
                 const time = new Date(t.timestamp).toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day: '2-digit', month: '2-digit'});
                 return `
-                    <div class="flex justify-between items-center bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center ${t.color}">
+                    <div class="flex flex-wrap gap-2 justify-between items-center bg-white p-3.5 rounded-lg shadow-sm border border-gray-100">
+                        <div class="flex items-center gap-3 min-w-0 flex-1 basis-40">
+                            <div class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${getTransactionColor(t.type)}">
                                 <i data-lucide="${t.icon}" class="w-5 h-5"></i>
                             </div>
-                            <div>
+                            <div class="min-w-0 flex-1">
                                 <p class="font-bold text-sm text-gray-900">${t.category}</p>
                                 <p class="text-[10px] text-gray-500">${time}</p>
+                                ${t.note ? `<p class="text-xs text-gray-500 mt-1 whitespace-pre-wrap break-words">${escapeHtml(t.note)}</p>` : ''}
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -967,7 +1194,7 @@
 
             list.innerHTML = categories.map(cat => `
                 <div class="flex items-center gap-2 border-b border-gray-100 last:border-0 py-2">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center ${cat.color}">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center ${getTransactionColor(cat.type)}">
                         <i data-lucide="${cat.icon}" class="w-4 h-4"></i>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -1004,7 +1231,7 @@
         function openCategoryEditor(category = null) {
             document.getElementById('categoryEditorTitle').textContent = category ? 'Sửa danh mục' : 'Thêm danh mục';
             document.getElementById('categoryEditorId').value = category ? category.id : '';
-            document.getElementById('categoryEditorColor').value = category ? category.color : getRandomCategoryColor();
+            document.getElementById('categoryEditorColor').value = getTransactionColor(category?.type);
             document.getElementById('categoryEditorLabel').value = category ? category.label : '';
             document.getElementById('categoryEditorType').value = category ? category.type : 'expense';
             document.getElementById('categoryEditorIcon').value = category && CATEGORY_ICONS.some(icon => icon.value === category.icon) ? category.icon : 'tag';
@@ -1022,12 +1249,14 @@
         }
 
         function renderCategoryIconOptions() {
+            const type = document.getElementById('categoryEditorType').value;
+            categoryEditorIconColors = getCategoryEditorIconColors({ type });
+            document.getElementById('categoryEditorColor').value = getTransactionColor(type);
             const selectedIcon = document.getElementById('categoryEditorIcon').value;
             const list = document.getElementById('categoryIconOptions');
             list.innerHTML = CATEGORY_ICONS.map(icon => `
-                <button type="button" onclick="selectCategoryIcon('${icon.value}')" class="category-icon-option ${categoryEditorIconColors[icon.value]} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border border-current rounded-xl p-2 flex flex-col items-center justify-center gap-1 min-h-[68px] active-scale" title="${icon.label}">
-                    <i data-lucide="${icon.value}" class="w-5 h-5"></i>
-                    <span class="text-[9px] font-semibold leading-tight text-center">${icon.label}</span>
+                <button type="button" onclick="selectCategoryIcon('${icon.value}')" class="category-icon-option ${categoryEditorIconColors[icon.value]} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border border-current rounded-lg h-14 flex items-center justify-center hover:brightness-95 active-scale" title="${icon.label}" aria-label="${icon.label}" aria-pressed="${selectedIcon === icon.value}">
+                    <i data-lucide="${icon.value}" class="w-7 h-7" aria-hidden="true"></i>
                 </button>
             `).join('');
             lucide.createIcons({ root: list });
@@ -1047,7 +1276,7 @@
             const icon = document.getElementById('categoryEditorIcon').value;
             if (!label) return;
 
-            const color = document.getElementById('categoryEditorColor').value || getRandomCategoryColor();
+            const color = getTransactionColor(type);
             const existing = categories.find(item => item.id === id);
             if (existing) {
                 const oldLabel = existing.label;
@@ -1089,13 +1318,12 @@
         function editTransaction(txId) {
             const tx = transactions.find(item => item.id === txId);
             if (!tx) return;
-            const category = categories.find(item => item.label === tx.category && item.type === tx.type);
 
             document.getElementById('transactionEditorId').value = tx.id;
+            document.getElementById('transactionEditorNote').value = tx.note || '';
             document.getElementById('transactionEditorAmount').value = tx.amount;
             document.getElementById('transactionEditorDate').value = toDateInputValue(new Date(tx.timestamp));
             document.getElementById('transactionEditorType').value = tx.type;
-            transactionEditorIconColors = getCategoryEditorIconColors(category);
             renderTransactionCategoryOptions(tx.category);
             document.getElementById('transactionEditor').classList.remove('hidden');
         }
@@ -1115,38 +1343,17 @@
             const selectedCategory = availableCategories.find(category => category.label === selectedLabel) || availableCategories[0];
             if (!selectedCategory) {
                 categorySelect.innerHTML = '<option value="">Chưa có danh mục</option>';
-                document.getElementById('transactionEditorIcon').value = 'tag';
             } else {
                 categorySelect.value = selectedCategory.id;
-                transactionEditorIconColors = getCategoryEditorIconColors(selectedCategory);
-                document.getElementById('transactionEditorIcon').value = selectedCategory.icon;
             }
-            renderTransactionIconOptions();
+            syncTransactionEditorIcon();
         }
 
         function syncTransactionEditorIcon() {
             const category = categories.find(item => item.id === document.getElementById('transactionEditorCategory').value);
-            if (!category) return;
-            transactionEditorIconColors = getCategoryEditorIconColors(category);
-            document.getElementById('transactionEditorIcon').value = category.icon;
-            renderTransactionIconOptions();
-        }
-
-        function renderTransactionIconOptions() {
-            const selectedIcon = document.getElementById('transactionEditorIcon').value;
-            const list = document.getElementById('transactionIconOptions');
-            list.innerHTML = CATEGORY_ICONS.map(icon => `
-                <button type="button" onclick="selectTransactionIcon('${icon.value}')" class="category-icon-option ${transactionEditorIconColors[icon.value] || 'bg-gray-50 text-gray-600'} ${selectedIcon === icon.value ? 'ring-2 ring-offset-1 ring-gray-900' : ''} border border-current rounded-xl p-2 flex flex-col items-center justify-center gap-1 min-h-[62px] active-scale" title="${icon.label}">
-                    <i data-lucide="${icon.value}" class="w-5 h-5"></i>
-                    <span class="text-[9px] font-semibold leading-tight text-center">${icon.label}</span>
-                </button>
-            `).join('');
-            lucide.createIcons({ root: list });
-        }
-
-        function selectTransactionIcon(icon) {
-            document.getElementById('transactionEditorIcon').value = icon;
-            renderTransactionIconOptions();
+            const preview = document.getElementById('transactionCategoryPreview');
+            preview.innerHTML = category ? `<span class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center ${getTransactionColor(category.type)}"><i data-lucide="${category.icon}" class="w-5 h-5"></i></span><span>${escapeHtml(category.label)}</span>` : '';
+            lucide.createIcons({ root: preview });
         }
 
         function saveTransactionEditor(event) {
@@ -1156,9 +1363,9 @@
             const date = document.getElementById('transactionEditorDate').value;
             const type = document.getElementById('transactionEditorType').value;
             const category = categories.find(item => item.id === document.getElementById('transactionEditorCategory').value);
-            const icon = document.getElementById('transactionEditorIcon').value;
-            const iconColor = transactionEditorIconColors[icon] || category?.color;
-            if (!tx || !Number.isInteger(amount) || amount < 1 || amount > MAX_AMOUNT || !date || !category || !icon) {
+            const icon = category?.icon;
+            const iconColor = getTransactionColor(type);
+            if (!tx || !Number.isInteger(amount) || amount < 1 || amount > MAX_AMOUNT || !date || !category || category.type !== type || !icon) {
                 showToast('Thông tin giao dịch không hợp lệ', true);
                 return;
             }
@@ -1176,6 +1383,7 @@
             tx.icon = icon;
             tx.color = iconColor;
             tx.timestamp = timestamp;
+            tx.note = document.getElementById('transactionEditorNote').value.trim();
             localStorage.setItem('sm_txs_v2', JSON.stringify(transactions));
             updateDashboard();
             closeTransactionEditor();
@@ -1196,6 +1404,7 @@
             const ctx = document.getElementById('expenseChart').getContext('2d');
 
             const range = getChartDateRange();
+            updateDateFilterSummary('chart');
             chartFilteredTransactions = transactions
                 .filter(tx => tx.timestamp >= range.from && tx.timestamp <= range.to)
                 .sort((a, b) => b.timestamp - a.timestamp);
@@ -1218,7 +1427,7 @@
             const totalExpense = Object.values(expenseData).reduce((sum, amount) => sum + amount, 0);
 
             document.getElementById('chartRangeSummary').textContent =
-                `${formatDateForDisplay(range.from)} - ${formatDateForDisplay(range.to)} | Thu: +${formatNumber(totalIncome)} đ | Chi: -${formatNumber(totalExpense)} đ`;
+                `Thu: +${formatNumber(totalIncome)} đ | Chi: -${formatNumber(totalExpense)} đ`;
 
             if (totalIncome === 0 && totalExpense === 0) {
                 ctx.clearRect(0, 0, 400, 400);
@@ -1304,7 +1513,7 @@
                 });
                 return `
                     <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                        <div class="w-9 h-9 rounded-full flex items-center justify-center ${tx.color}">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center ${getTransactionColor(tx.type)}">
                             <i data-lucide="${tx.icon}" class="w-4 h-4"></i>
                         </div>
                         <div class="flex-1 min-w-0">
