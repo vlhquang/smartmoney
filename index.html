@@ -242,7 +242,7 @@
 
             <!-- TAB 3: CHART -->
             <div id="tab-chart" class="tab-content w-full h-full flex-col absolute inset-0 pb-[72px] bg-white">
-                <div class="flex-1 min-h-0 overflow-y-auto p-4 bg-gray-50">
+                <div id="chartScrollArea" class="flex-1 min-h-0 overflow-y-auto p-4 bg-gray-50">
                     <div class="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-4">
                         <details class="date-filter border-b border-gray-100 mb-3">
                             <summary><i data-lucide="calendar-days" class="w-4 h-4 text-gray-500"></i><span id="chartDateSummary">Khoảng ngày</span><i data-lucide="chevron-down" class="filter-chevron w-4 h-4 text-gray-400"></i></summary>
@@ -270,6 +270,7 @@
                             <span id="chartTransactionCount" class="text-xs text-gray-400"></span>
                         </div>
                         <div id="chartTransactionList" class="max-h-[420px] overflow-y-auto p-3 space-y-2"></div>
+                        <button id="chartLoadMore" onclick="loadMoreChartTransactions()" class="hidden w-full min-h-[44px] text-sm font-semibold text-brand-600">Xem thêm</button>
                     </div>
                 </div>
             </div>
@@ -585,7 +586,9 @@
         let chartInstance = null;
         let chartFilteredTransactions = [];
         let chartTransactionPage = 0;
-        const CHART_PAGE_SIZE = 10;
+        const CHART_PAGE_SIZE = 50;
+        let historyFilteredTransactions = [];
+        let historyVisibleCount = 0;
         const SYNC_SETTINGS_KEY = 'sm_sync_v1';
         const DEVICE_ID_KEY = 'sm_device_id_v1';
         const ACCESS_SETTINGS_KEY = 'sm_access_v1';
@@ -1187,7 +1190,11 @@
 
         function renderHistory() {
             updateDateFilterSummary('history');
+            if (!document.getElementById('tab-history').classList.contains('active')) return;
             const list = document.getElementById('historyList');
+            historyVisibleCount = 0;
+            historyFilteredTransactions = [];
+            list.scrollTop = 0;
             const from = document.getElementById('historyDateFrom').value;
             const to = document.getElementById('historyDateTo').value;
             const invalidRange = Boolean(from && to && from > to);
@@ -1201,6 +1208,7 @@
                 const day = toDateInputValue(new Date(t.timestamp));
                 return (historyFilter === 'all' || t.type === historyFilter) && (!from || day >= from) && (!to || day <= to);
             }).sort((a, b) => b.timestamp - a.timestamp);
+            historyFilteredTransactions = filteredTransactions;
             const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const expense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             document.getElementById('historyTotals').innerHTML = `<span class="text-emerald-600">Thu +${formatNumber(income)} đ</span><span class="text-rose-600 ml-3">Chi -${formatNumber(expense)} đ</span>`;
@@ -1209,12 +1217,16 @@
                     <i data-lucide="inbox" class="w-12 h-12 mb-3 text-gray-300"></i>
                     <p class="text-sm">${from || to ? 'Không có giao dịch phù hợp trong khoảng ngày đã chọn' : historyFilter === 'all' ? 'Chưa có giao dịch' : historyFilter === 'income' ? 'Chưa có khoản thu' : 'Chưa có khoản chi'}</p>
                 </div>`;
-                lucide.createIcons();
+                lucide.createIcons({ root: list });
                 return;
             }
-            
-            let previousDay = '';
-            list.innerHTML = filteredTransactions.map(t => {
+
+            list.innerHTML = '';
+            loadMoreHistoryTransactions();
+        }
+
+        function renderTransactionRows(items, previousDay = '') {
+            return items.map(t => {
                 const isInc = t.type === 'income';
                 const day = toDateInputValue(new Date(t.timestamp));
                 const heading = day !== previousDay ? `<h3 class="history-day">${formatDateForDisplay(t.timestamp)}</h3>` : '';
@@ -1234,7 +1246,31 @@
                     </button>
                 `;
             }).join('');
-            lucide.createIcons();
+        }
+
+        function appendTransactionPage(list, items, start) {
+            const page = document.createElement('div');
+            const previousDay = start ? toDateInputValue(new Date(items[start - 1].timestamp)) : '';
+            page.innerHTML = renderTransactionRows(items.slice(start, start + CHART_PAGE_SIZE), previousDay);
+            list.appendChild(page);
+            lucide.createIcons({ root: page });
+        }
+
+        function loadMoreHistoryTransactions() {
+            if (historyVisibleCount >= historyFilteredTransactions.length) return;
+            const list = document.getElementById('historyList');
+            list.querySelector('[data-load-more]')?.remove();
+            appendTransactionPage(list, historyFilteredTransactions, historyVisibleCount);
+            historyVisibleCount = Math.min(historyVisibleCount + CHART_PAGE_SIZE, historyFilteredTransactions.length);
+            if (historyVisibleCount < historyFilteredTransactions.length) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.loadMore = 'true';
+                button.className = 'w-full min-h-[44px] text-sm font-semibold text-brand-600';
+                button.textContent = 'Xem thêm';
+                button.addEventListener('click', loadMoreHistoryTransactions);
+                list.appendChild(button);
+            }
         }
 
         function renderCategorySettings() {
@@ -1562,41 +1598,28 @@
             const count = document.getElementById('chartTransactionCount');
             if (!list || !count) return;
 
-            const visibleCount = Math.min((chartTransactionPage + 1) * CHART_PAGE_SIZE, chartFilteredTransactions.length);
             count.textContent = `${chartFilteredTransactions.length} giao dịch`;
-            list.innerHTML = chartFilteredTransactions.slice(0, visibleCount).map(tx => {
-                const time = new Date(tx.timestamp).toLocaleString('vi-VN', {
-                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
-                });
-                return `
-                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                        <div class="w-9 h-9 rounded-full flex items-center justify-center ${getTransactionColor(tx.type)}">
-                            <i data-lucide="${tx.icon}" class="w-4 h-4"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-800 truncate">${tx.category}</p>
-                            <p class="text-[10px] text-gray-500">${time}</p>
-                        </div>
-                        <span class="font-bold text-sm ${tx.type === 'income' ? 'text-brand-600' : 'text-rose-600'}">
-                            ${tx.type === 'income' ? '+' : '-'}${formatNumber(tx.amount)} đ
-                        </span>
-                    </div>
-                `;
-            }).join('');
+            if (chartTransactionPage === 0) list.innerHTML = '';
+            appendTransactionPage(list, chartFilteredTransactions, chartTransactionPage * CHART_PAGE_SIZE);
+            document.getElementById('chartLoadMore').classList.toggle('hidden', (chartTransactionPage + 1) * CHART_PAGE_SIZE >= chartFilteredTransactions.length);
 
             if (chartFilteredTransactions.length === 0) {
                 list.innerHTML = '<p class="text-center text-sm text-gray-400 py-8">Không có giao dịch thu chi</p>';
             }
-            lucide.createIcons({ root: list });
         }
 
         function loadMoreChartTransactions() {
-            if (chartTransactionPage * CHART_PAGE_SIZE >= chartFilteredTransactions.length) return;
+            if ((chartTransactionPage + 1) * CHART_PAGE_SIZE >= chartFilteredTransactions.length) return;
             chartTransactionPage += 1;
             renderChartTransactions();
         }
 
-        document.getElementById('chartTransactionList').addEventListener('scroll', event => {
+        document.getElementById('historyList').addEventListener('scroll', event => {
+            const list = event.currentTarget;
+            if (list.scrollTop + list.clientHeight >= list.scrollHeight - 80) loadMoreHistoryTransactions();
+        });
+
+        document.getElementById('chartScrollArea').addEventListener('scroll', event => {
             const list = event.currentTarget;
             if (list.scrollTop + list.clientHeight >= list.scrollHeight - 40) {
                 loadMoreChartTransactions();
