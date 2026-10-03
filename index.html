@@ -74,6 +74,7 @@
         #chipsGrid > button > div { flex-shrink: 0; width: 44px; height: 44px; margin-bottom: 8px; }
         #chipsGrid > button > span { width: 100%; height: 32px; font-size: 12px; line-height: 16px; overflow-wrap: anywhere; }
         #chipsGrid > button:active { background: #f3f4f6; }
+        #chipsGrid > button.category-tapped { background: #e5e7eb; }
         .numpad-btn { border-radius: 8px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
         #tab-home > div:last-child { box-shadow: none; border-color: #e5e7eb; padding: 12px; }
         #tab-home > div:last-child > div { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 0.72fr); }
@@ -92,8 +93,14 @@
         #tab-chart > div:last-child > div { border-radius: 0; box-shadow: none; border-width: 0 0 1px; }
         #tab-chart h3 { min-width: 0; font-size: 14px; }
         #chartTransactionList { max-height: none; overflow: visible; }
-        #toast { top: calc(12px + env(safe-area-inset-top, 0px)); }
-        #toastMsg { white-space: normal; overflow-wrap: anywhere; }
+        #toast { top: auto; bottom: calc(var(--nav-height) + 12px); padding: 10px 12px; border-radius: 8px; }
+        #toastMsg { white-space: normal; overflow-wrap: anywhere; font-size: 12px; line-height: 18px; }
+        @media (max-width: 375px) {
+            #chipsGrid { gap: 4px 8px; }
+            #chipsGrid > button { height: 92px; padding: 6px 2px; }
+            #chipsGrid > button > div { width: 40px; height: 40px; }
+            #tab-home > div:last-child { padding-left: 8px; padding-right: 8px; }
+        }
         #categoryEditor, #transactionEditor, #accessGate { overflow-y: auto; }
         #categoryEditor > form, #transactionEditor > form, #accessGate > form {
             max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain;
@@ -384,7 +391,7 @@
         </nav>
 
         <!-- TOAST NOTIFICATION -->
-        <div id="toast" class="absolute top-4 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none z-50 flex items-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl w-11/12 max-w-sm transition-all duration-300">
+        <div id="toast" role="status" aria-live="polite" class="absolute top-4 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none z-50 flex items-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl w-11/12 max-w-sm transition-all duration-300">
             <div class="bg-brand-500 rounded-full p-1"><i data-lucide="check" class="w-4 h-4 text-white" id="toastIcon"></i></div>
             <span id="toastMsg" class="text-sm font-semibold truncate flex-1">Thành công</span>
         </div>
@@ -714,7 +721,7 @@
             const activeCats = categories.filter(c => c.type === txType);
             
             grid.innerHTML = activeCats.map(c => `
-                <button onclick="handleCategoryClick('${c.id}')" class="active-scale flex flex-col items-center justify-center p-3 h-[104px] bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
+                <button onclick="handleCategoryClick('${c.id}', this)" class="active-scale flex flex-col items-center justify-center p-3 h-[104px] bg-white border border-gray-100 rounded-2xl shadow-sm text-center">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center mb-2 ${getTransactionColor(c.type)}">
                         <i data-lucide="${c.icon}" class="w-6 h-6"></i>
                     </div>
@@ -725,7 +732,12 @@
         }
 
         // Click Danh mục
-        function handleCategoryClick(catId) {
+        function handleCategoryClick(catId, button) {
+            if (button) {
+                button.classList.add('category-tapped');
+                clearTimeout(button.feedbackTimer);
+                button.feedbackTimer = setTimeout(() => button.classList.remove('category-tapped'), 350);
+            }
             if (navigator.vibrate) navigator.vibrate(15);
             
             const cat = categories.find(c => c.id === catId);
